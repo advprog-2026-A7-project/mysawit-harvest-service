@@ -7,5 +7,8 @@ import org.springframework.boot.runApplication
 class MysawitHarvestServiceApplication
 
 fun main(args: Array<String>) {
-	runApplication<MysawitHarvestServiceApplication>(*args)
+    val context = runApplication<MysawitHarvestServiceApplication>(*args)
+    if (context.environment.getProperty("app.test.close-context", Boolean::class.java, false)) {
+        context.close()
+    }
 }
