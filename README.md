@@ -1,6 +1,6 @@
 # mysawit-harvest-service
 
-Spring Boot (Kotlin + Gradle) microservice for MySawit.
+Spring Boot (Java + Gradle) microservice for MySawit.
 
 ## Run (local)
 ```bash
