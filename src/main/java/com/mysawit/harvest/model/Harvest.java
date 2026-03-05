@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Positive;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
@@ -49,8 +48,9 @@ public class Harvest {
     @Column(name = "photos", columnDefinition = "text[]")
     private List<String> photos;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status = "Pending";
+    private HarvestStatus status = HarvestStatus.PENDING;
 
     @Column(name = "rejection_reason")
     private String rejectionReason;
@@ -59,8 +59,6 @@ public class Harvest {
     @Column(name = "harvest_date", updatable = false)
     private LocalDateTime harvestDate;
 
-    @UpdateTimestamp
     @Column(name = "status_updated_date")
     private LocalDateTime statusUpdatedDate;
-
 }
