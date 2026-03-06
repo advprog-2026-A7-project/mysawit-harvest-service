@@ -75,6 +75,12 @@ jobs:
           printf '%s' "$STAGING_SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p "$STAGING_PORT" -H "$STAGING_HOST" >> ~/.ssh/known_hosts
+          # Tambah ini:
+          cat >> ~/.ssh/config << 'EOF'
+          Host *
+            ServerAliveInterval 60
+            ServerAliveCountMax 10
+          EOF
 
       - name: Create runtime env file
         run: |
