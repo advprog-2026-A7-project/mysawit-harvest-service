@@ -50,6 +50,7 @@ public class Harvest {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private HarvestStatus status = HarvestStatus.PENDING;
 
     @Column(name = "rejection_reason")
