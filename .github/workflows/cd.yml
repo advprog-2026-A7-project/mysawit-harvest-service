@@ -74,8 +74,8 @@ jobs:
           install -m 700 -d ~/.ssh
           printf '%s' "$STAGING_SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p "$STAGING_PORT" -H "$STAGING_HOST" >> ~/.ssh/known_hosts
-          # Tambah ini:
+          SSH_PORT="${STAGING_PORT:-22}"
+          ssh-keyscan -p "$SSH_PORT" -H "$STAGING_HOST" >> ~/.ssh/known_hosts
           cat >> ~/.ssh/config << 'EOF'
           Host *
             ServerAliveInterval 60
