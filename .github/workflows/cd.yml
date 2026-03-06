@@ -1,0 +1,157 @@
+name: CD - Deploy Harvest to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harvest-cd-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Harvest Service (EC2)
+    if: ${{ github.ref_name == 'main' }}
+    runs-on: ubuntu-latest
+    env:
+      STAGING_HOST: ${{ secrets.STAGING_HOST }}
+      STAGING_USER: ${{ secrets.STAGING_USER }}
+      STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+      STAGING_PORT: ${{ vars.STAGING_PORT }}
+      REMOTE_APP_DIR: ${{ vars.REMOTE_APP_DIR }}
+      HARVEST_HOST_PORT: ${{ vars.HARVEST_HOST_PORT }}
+
+      SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+      SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+      SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+      CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+
+    steps:
+      - name: Validate deployment inputs and secrets
+        run: |
+          set -euo pipefail
+
+          required_secrets=(
+            STAGING_HOST
+            STAGING_USER
+            STAGING_SSH_KEY
+            SPRING_DATASOURCE_URL
+            SPRING_DATASOURCE_USERNAME
+            SPRING_DATASOURCE_PASSWORD
+            CORS_ORIGINS
+          )
+
+          missing=()
+          for key in "${required_secrets[@]}"; do
+            if [ -z "${!key:-}" ]; then
+              missing+=("$key")
+            fi
+          done
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set deploy metadata
+        run: |
+          set -euo pipefail
+          echo "IMAGE_TAG=${GITHUB_SHA::12}" >> "$GITHUB_ENV"
+          echo "STAGING_PORT=${STAGING_PORT:-22}" >> "$GITHUB_ENV"
+          echo "REMOTE_APP_DIR=${REMOTE_APP_DIR:-/home/${STAGING_USER}/mysawit-harvest}" >> "$GITHUB_ENV"
+          echo "HARVEST_HOST_PORT=${HARVEST_HOST_PORT:-8083}" >> "$GITHUB_ENV"
+
+      - name: Prepare SSH client
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s' "$STAGING_SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "$STAGING_PORT" -H "$STAGING_HOST" >> ~/.ssh/known_hosts
+
+      - name: Create runtime env file
+        run: |
+          set -euo pipefail
+          {
+            echo "SERVER_PORT=8083"
+            echo "SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}"
+            echo "SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}"
+            echo "SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}"
+            echo "CORS_ORIGINS=${CORS_ORIGINS}"
+          } > .env.deploy
+
+      - name: Upload app source and env file
+        run: |
+          set -euo pipefail
+          tar \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='build' \
+            -czf /tmp/mysawit-harvest-src.tgz .
+
+          ssh -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" "mkdir -p '$REMOTE_APP_DIR'"
+
+          scp -P "$STAGING_PORT" /tmp/mysawit-harvest-src.tgz "$STAGING_USER@$STAGING_HOST:/tmp/mysawit-harvest-src.tgz"
+          scp -P "$STAGING_PORT" .env.deploy "$STAGING_USER@$STAGING_HOST:$REMOTE_APP_DIR/.env"
+
+          ssh -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" "tar -xzf /tmp/mysawit-harvest-src.tgz -C '$REMOTE_APP_DIR'"
+
+      - name: Build and run harvest container
+        run: |
+          set -euo pipefail
+          ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=10 -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" \
+            "export REMOTE_APP_DIR='$REMOTE_APP_DIR' IMAGE_TAG='$IMAGE_TAG' HARVEST_HOST_PORT='$HARVEST_HOST_PORT'; bash -s" <<'EOSSH'
+          set -euo pipefail
+          cd "$REMOTE_APP_DIR"
+
+          DOCKER_BIN="docker"
+          if ! docker info >/dev/null 2>&1; then
+            DOCKER_BIN="sudo docker"
+          fi
+
+          $DOCKER_BIN build -t "mysawit-harvest:${IMAGE_TAG}" -t mysawit-harvest:latest .
+          $DOCKER_BIN rm -f mysawit-harvest >/dev/null 2>&1 || true
+
+          $DOCKER_BIN run -d \
+            --name mysawit-harvest \
+            --env-file .env \
+            -p "${HARVEST_HOST_PORT}:8083" \
+            --restart unless-stopped \
+            "mysawit-harvest:${IMAGE_TAG}"
+          EOSSH
+
+      - name: Verify service health
+        run: |
+          set -euo pipefail
+          ssh -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" \
+            "export HARVEST_HOST_PORT='$HARVEST_HOST_PORT'; bash -s" <<'EOSSH'
+          set -euo pipefail
+
+          DOCKER_BIN="docker"
+          if ! docker info >/dev/null 2>&1; then
+            DOCKER_BIN="sudo docker"
+          fi
+
+          for i in $(seq 1 24); do
+            if command -v curl >/dev/null 2>&1 && curl -fsS "http://localhost:${HARVEST_HOST_PORT}/actuator/health" >/dev/null; then
+              echo "Harvest service is healthy"
+              exit 0
+            fi
+            if command -v wget >/dev/null 2>&1 && wget -qO- "http://localhost:${HARVEST_HOST_PORT}/actuator/health" >/dev/null; then
+              echo "Harvest service is healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          $DOCKER_BIN logs --tail 200 mysawit-harvest || true
+          echo "::error::Harvest service health check failed"
+          exit 1
+          EOSSH
