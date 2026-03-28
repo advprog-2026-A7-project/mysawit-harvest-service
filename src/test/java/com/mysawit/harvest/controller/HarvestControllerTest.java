@@ -1,7 +1,7 @@
 package com.mysawit.harvest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mysawit.harvest.dto.HarvestRequest;
+import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.model.HarvestStatus;
@@ -35,14 +35,14 @@ class HarvestControllerTest {
 
     private UUID harvesterId;
     private UUID foremanId;
-    private HarvestRequest validRequest;
+    private LogHarvestRequest validRequest;
 
     @BeforeEach
     void setUp() {
         harvesterId = UUID.randomUUID();
         foremanId = UUID.randomUUID();
 
-        validRequest = new HarvestRequest();
+        validRequest = new LogHarvestRequest();
         validRequest.setPlantationId(UUID.randomUUID());
         validRequest.setWeight(300.5);
         validRequest.setNews("Successful harvest");
@@ -57,7 +57,7 @@ class HarvestControllerTest {
                 .weight(300.5)
                 .build();
 
-        when(harvestService.logHarvest(any(HarvestRequest.class), any(UUID.class), any(UUID.class)))
+        when(harvestService.logHarvest(any(LogHarvestRequest.class), any(UUID.class), any(UUID.class)))
                 .thenReturn(response);
 
         mockMvc.perform(post("/harvests")
@@ -85,7 +85,7 @@ class HarvestControllerTest {
 
     @Test
     void validationFailed() throws Exception {
-        HarvestRequest invalidRequest = new HarvestRequest();
+        LogHarvestRequest invalidRequest = new LogHarvestRequest();
 
         mockMvc.perform(post("/harvests")
                         .header("X-Harvester-Id", harvesterId)

@@ -1,6 +1,6 @@
 package com.mysawit.harvest.controller;
 
-import com.mysawit.harvest.dto.HarvestRequest;
+import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.service.HarvestService;
 
@@ -22,7 +22,7 @@ public class HarvestController {
 
     @PostMapping
     public ResponseEntity<?> logHarvest(
-            @Valid @RequestBody HarvestRequest request,
+            @Valid @RequestBody LogHarvestRequest request,
             @RequestHeader("X-Harvester-Id") UUID harvesterId,
             @RequestHeader("X-Foreman-Id") UUID foremanId
     ) {

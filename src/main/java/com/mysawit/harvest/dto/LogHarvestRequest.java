@@ -4,12 +4,11 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 @Data
-public class HarvestRequest {
+public class LogHarvestRequest {
     @NotNull(message = "Plantation ID is required")
     private UUID plantationId;
 
@@ -21,11 +20,4 @@ public class HarvestRequest {
     private String news;
 
     private List<String> photos;
-
-    public void setStartDate(LocalDateTime start) {
-
-    }
-
-    public void setEndDate(LocalDateTime end) {
-    }
 }

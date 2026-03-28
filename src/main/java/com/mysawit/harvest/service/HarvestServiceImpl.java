@@ -1,7 +1,8 @@
 package com.mysawit.harvest.service;
 
-import com.mysawit.harvest.dto.HarvestRequest;
+import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
+import com.mysawit.harvest.dto.ViewHarvestRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
@@ -23,7 +24,7 @@ public class HarvestServiceImpl implements HarvestService {
     private final HarvestRepository harvestRepository;
 
     @Override
-    public HarvestResponse logHarvest(HarvestRequest request, UUID harvesterId, UUID foremanId) {
+    public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId) {
         LocalDateTime dayStart = LocalDate.now().atStartOfDay();
         LocalDateTime dayEnd = LocalDate.now().atTime(LocalTime.MAX);
 
@@ -65,7 +66,7 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
-    public List<HarvestResponse> viewHarvest(HarvestRequest request, UUID harvesterId, UUID foremanId) {
+    public List<HarvestResponse> viewHarvest(ViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
 //        - cases:
 //            - cek date filter dan harvester tepat dan data tepat dan not null
         return null;

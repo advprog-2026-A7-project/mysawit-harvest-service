@@ -1,7 +1,8 @@
 package com.mysawit.harvest.service;
 
-import com.mysawit.harvest.dto.HarvestRequest;
+import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
+import com.mysawit.harvest.dto.ViewHarvestRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
@@ -36,7 +37,9 @@ class HarvestServiceImplTest {
     private UUID harvesterId;
     private UUID foremanId;
     private UUID plantationId;
-    private HarvestRequest validRequest;
+
+    private LogHarvestRequest logRequest;
+    private ViewHarvestRequest viewRequest;
 
     @BeforeEach
     void setUp() {
@@ -44,10 +47,10 @@ class HarvestServiceImplTest {
         foremanId = UUID.randomUUID();
         plantationId = UUID.randomUUID();
 
-        validRequest = new HarvestRequest();
-        validRequest.setPlantationId(plantationId);
-        validRequest.setWeight(300.5);
-        validRequest.setNews("Successful harvest");
+        logRequest = new LogHarvestRequest();
+        logRequest.setPlantationId(plantationId);
+        logRequest.setWeight(300.5);
+        logRequest.setNews("Successful harvest");
     }
 
     // HARVEST LOG ------------------------------------------------------------------
@@ -69,7 +72,7 @@ class HarvestServiceImplTest {
                         .build()
         );
 
-        HarvestResponse response = harvestService.logHarvest(validRequest, harvesterId, foremanId);
+        HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId, foremanId);
 
         assertNotNull(response);
         assertEquals(harvesterId, response.getHarvesterId());
@@ -86,7 +89,7 @@ class HarvestServiceImplTest {
         )).thenReturn(true);
 
         assertThrows(AlreadyLoggedHarvestTodayException.class, () ->
-                harvestService.logHarvest(validRequest, harvesterId, foremanId)
+                harvestService.logHarvest(logRequest, harvesterId, foremanId)
         );
 
         verify(harvestRepository, never()).save(any(Harvest.class));
@@ -100,7 +103,7 @@ class HarvestServiceImplTest {
                         Harvest.builder().harvesterId(harvesterId).build()
                 ));
 
-        List<HarvestResponse> responses = harvestService.viewHarvest(validRequest, harvesterId, null);
+        List<HarvestResponse> responses = harvestService.viewHarvest(viewRequest, harvesterId, null);
 
         assertEquals(1, responses.size());
         assertEquals(harvesterId, responses.getFirst().getHarvesterId());
@@ -113,13 +116,13 @@ class HarvestServiceImplTest {
         LocalDateTime start = LocalDateTime.of(2026, 3, 1, 0, 0);
         LocalDateTime end = LocalDateTime.of(2026, 3, 7, 23, 59);
 
-        validRequest.setStartDate(start);
-        validRequest.setEndDate(end);
+        viewRequest.setStartDate(start);
+        viewRequest.setEndDate(end);
 
         when(harvestRepository.findAllByHarvesterIdAndHarvestDateBetween(any(), eq(start), eq(end)))
                 .thenReturn(List.of());
 
-        harvestService.viewHarvest(validRequest, harvesterId, null);
+        harvestService.viewHarvest(viewRequest, harvesterId, null);
 
         verify(harvestRepository).findAllByHarvesterIdAndHarvestDateBetween(any(), eq(start), eq(end));
     }
@@ -136,7 +139,7 @@ class HarvestServiceImplTest {
         when(harvestRepository.findAllByHarvesterIdAndHarvestDateBetween(any(), any(), any()))
                 .thenReturn(List.of(mockHarvest));
 
-        List<HarvestResponse> responses = harvestService.viewHarvest(validRequest, harvesterId, null);
+        List<HarvestResponse> responses = harvestService.viewHarvest(viewRequest, harvesterId, null);
 
         HarvestResponse result = responses.getFirst();
         assertEquals(250.75, result.getWeight());
@@ -149,7 +152,7 @@ class HarvestServiceImplTest {
         when(harvestRepository.findAllByHarvesterIdAndHarvestDateBetween(any(), any(), any()))
                 .thenReturn(List.of());
 
-        List<HarvestResponse> responses = harvestService.viewHarvest(validRequest, harvesterId, null);
+        List<HarvestResponse> responses = harvestService.viewHarvest(viewRequest, harvesterId, null);
 
         assertNotNull(responses);
         assertTrue(responses.isEmpty());
