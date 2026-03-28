@@ -18,7 +18,6 @@ import java.util.UUID;
 @RequestMapping("/harvests")
 @RequiredArgsConstructor
 public class HarvestController {
-
     private final HarvestService harvestService;
 
     @PostMapping

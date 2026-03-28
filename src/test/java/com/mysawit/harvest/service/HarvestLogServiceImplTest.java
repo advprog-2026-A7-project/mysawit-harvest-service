@@ -50,7 +50,7 @@ class HarvestLogServiceImplTest {
 
     @Test
     void logSuccess() {
-        when(harvestRepository.existsTodaysHarvestByHarvesterId(
+        when(harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
                 eq(harvesterId), any(), any()
         )).thenReturn(false);
 
@@ -78,7 +78,7 @@ class HarvestLogServiceImplTest {
 
     @Test
     void alreadyLoggedHarvestToday() {
-        when(harvestRepository.existsTodaysHarvestByHarvesterId(
+        when(harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
                 eq(harvesterId), any(), any()
         )).thenReturn(true);
 
