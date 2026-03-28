@@ -4,6 +4,7 @@ import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.dto.ViewHarvestRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
+import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.repository.HarvestRepository;
