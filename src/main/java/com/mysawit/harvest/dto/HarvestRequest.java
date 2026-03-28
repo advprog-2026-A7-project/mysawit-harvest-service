@@ -3,6 +3,8 @@ package com.mysawit.harvest.dto;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,4 +21,11 @@ public class HarvestRequest {
     private String news;
 
     private List<String> photos;
+
+    public void setStartDate(LocalDateTime start) {
+
+    }
+
+    public void setEndDate(LocalDateTime end) {
+    }
 }

@@ -4,8 +4,10 @@ import com.mysawit.harvest.model.Harvest;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public interface HarvestRepository extends JpaRepository<Harvest, UUID> {
     boolean existsHarvestByHarvesterIdAndHarvestDateBetween(UUID harvesterId, LocalDateTime dayStart, LocalDateTime dayEnd);
+    List<Harvest> findAllByHarvesterIdAndHarvestDateBetween(UUID harvesterId, LocalDateTime dayStart, LocalDateTime dayEnd);
 }

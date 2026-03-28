@@ -14,11 +14,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class HarvestLogServiceImpl implements HarvestService {
+public class HarvestServiceImpl implements HarvestService {
     private final HarvestRepository harvestRepository;
 
     @Override
@@ -61,5 +62,12 @@ public class HarvestLogServiceImpl implements HarvestService {
                 .harvestDate(harvestSaved.getHarvestDate())
                 .statusUpdatedDate(harvestSaved.getStatusUpdatedDate())
                 .build();
+    }
+
+    @Override
+    public List<HarvestResponse> viewHarvest(HarvestRequest request, UUID harvesterId, UUID foremanId) {
+//        - cases:
+//            - cek date filter dan harvester tepat dan data tepat dan not null
+        return null;
     }
 }
