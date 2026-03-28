@@ -157,4 +157,14 @@ class HarvestServiceImplTest {
         assertNotNull(responses);
         assertTrue(responses.isEmpty());
     }
+
+    @Test
+    void viewHarvest_Unauthorized() {
+        assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.viewHarvest(viewRequest, null, null)
+        );
+
+        verify(harvestRepository, never()).findAllByHarvesterIdAndHarvestDateBetween(any(), any(), any());
+        verify(harvestRepository, never()).findAllByForemanIdAndHarvestDateBetween(any(), any(), any());
+    }
 }

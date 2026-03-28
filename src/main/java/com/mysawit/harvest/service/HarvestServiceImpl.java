@@ -67,8 +67,6 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public List<HarvestResponse> viewHarvest(ViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
-//        - cases:
-//            - cek date filter dan harvester tepat dan data tepat dan not null
         return null;
     }
 }
