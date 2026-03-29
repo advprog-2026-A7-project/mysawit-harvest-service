@@ -17,7 +17,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -94,5 +96,35 @@ class HarvestControllerTest {
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void getHistorySuccess() throws Exception {
+        HarvestResponse res = HarvestResponse.builder()
+                .harvesterId(harvesterId)
+                .weight(300.5)
+                .status(HarvestStatus.PENDING)
+                .build();
+
+        when(harvestService.viewHarvest(any(), eq(harvesterId), any()))
+                .thenReturn(java.util.List.of(res));
+
+        mockMvc.perform(get("/harvests/my")
+                        .header("X-Harvester-Id", harvesterId)
+                        .param("startDate", "2026-03-01T00:00:00")
+                        .param("endDate", "2026-03-07T23:59:59"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].weight").value(300.5));
+    }
+
+    @Test
+    void getHistoryUnauthorized() throws Exception {
+        when(harvestService.viewHarvest(any(), any(), any()))
+                .thenThrow(new com.mysawit.harvest.exception.UnauthorizedUserException("Unauthorized"));
+
+        mockMvc.perform(get("/harvests/my"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED_ACCESS"));
     }
 }

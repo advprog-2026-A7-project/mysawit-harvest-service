@@ -29,4 +29,10 @@ public class HarvestController {
         HarvestResponse response = harvestService.logHarvest(request, harvesterId, foremanId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    // TODO: nama endpoint plan
+    // /harvests = buat log harvestny
+    // /harvests/my = harvester liat log dia ndiri
+    // /harvests = mandor liat semua history log harvesterny dan bs filtering
+    // /harvests/harvester/{harvesterId} = mandor liat one specific harvester beserta harvestny
 }
