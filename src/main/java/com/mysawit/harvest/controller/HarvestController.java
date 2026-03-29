@@ -35,7 +35,7 @@ public class HarvestController {
     @GetMapping("/my")
     public ResponseEntity<List<HarvestResponse>> viewMyHistory(
             @ModelAttribute ViewHarvestRequest request,
-            @RequestHeader("X-Harvester-Id") UUID harvesterId
+            @RequestHeader(value = "X-Harvester-Id", required = false) UUID harvesterId
             ) {
         return ResponseEntity.ok(harvestService.viewHarvest(request, harvesterId, null));
     }
@@ -43,7 +43,7 @@ public class HarvestController {
 
     // TODO: nama endpoint plan
     // /harvests = buat log harvestny <don>
-    // /harvests/my = harvester liat log dia ndiri
+    // /harvests/my = harvester liat log dia ndiri <don>
     // /harvests = mandor liat semua history log harvesterny dan bs filtering
     // /harvests/harvester/{harvesterId} = mandor liat one specific harvester beserta harvestny
 }
