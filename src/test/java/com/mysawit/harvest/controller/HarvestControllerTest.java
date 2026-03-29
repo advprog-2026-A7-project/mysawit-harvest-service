@@ -120,10 +120,13 @@ class HarvestControllerTest {
 
     @Test
     void getHistoryUnauthorized() throws Exception {
+        UUID randomId = UUID.randomUUID();
+
         when(harvestService.viewHarvest(any(), any(), any()))
                 .thenThrow(new com.mysawit.harvest.exception.UnauthorizedUserException("Unauthorized"));
 
-        mockMvc.perform(get("/harvests/my"))
+        mockMvc.perform(get("/harvests/my")
+                        .header("X-Harvester-Id", randomId.toString()))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED_ACCESS"));
     }

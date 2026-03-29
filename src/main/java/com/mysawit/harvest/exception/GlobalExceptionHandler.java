@@ -19,6 +19,14 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    @ExceptionHandler(UnauthorizedUserException.class)
+    public ResponseEntity<?> handleUnauthorizedUser(UnauthorizedUserException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "error", "UNAUTHORIZED_ACCESS",
+                "message", ex.getMessage()
+        ));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationError(MethodArgumentNotValidException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
