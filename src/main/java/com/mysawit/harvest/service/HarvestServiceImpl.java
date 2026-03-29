@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,19 +51,7 @@ public class HarvestServiceImpl implements HarvestService {
 
         Harvest harvestSaved = harvestRepository.save(harvest);
 
-        return HarvestResponse.builder()
-                .id(harvestSaved.getId())
-                .plantationId(harvestSaved.getPlantationId())
-                .harvesterId(harvestSaved.getHarvesterId())
-                .foremanId(harvestSaved.getForemanId())
-                .weight(harvestSaved.getWeight())
-                .news(harvestSaved.getNews())
-                .photos(harvestSaved.getPhotos())
-                .status(harvestSaved.getStatus())
-                .rejectionReason(harvestSaved.getRejectionReason())
-                .harvestDate(harvestSaved.getHarvestDate())
-                .statusUpdatedDate(harvestSaved.getStatusUpdatedDate())
-                .build();
+        return mapResponse(harvestSaved);
     }
 
     @Override
