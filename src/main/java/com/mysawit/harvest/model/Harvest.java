@@ -3,125 +3,63 @@ package com.mysawit.harvest.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
+@Setter
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name = "harvests")
 public class Harvest {
-    
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
     @NotNull(message = "Plantation ID is required")
     @Column(name = "plantation_id", nullable = false)
-    private Long plantationId;
-    
-    @NotNull(message = "Harvest date is required")
-    @Column(name = "harvest_date", nullable = false)
-    private LocalDateTime harvestDate;
-    
+    private UUID plantationId;
+
+    @NotNull(message = "Harvester ID is required")
+    @Column(name = "harvester_id", nullable = false)
+    private UUID harvesterId;
+
+    @Column(name = "foreman_id")
+    private UUID foremanId;
+
     @NotNull(message = "Weight is required")
     @Positive(message = "Weight must be positive")
     @Column(nullable = false)
-    private Double weight; // in kg
-    
+    private Double weight; // in KG
+
+    @NotNull(message = "News is required")
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String news;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "photos", columnDefinition = "text[]")
+    private List<String> photos;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String quality = "STANDARD"; // PREMIUM, STANDARD, LOW
-    
-    @Column(name = "harvester_id")
-    private Long harvesterId;
-    
-    @Column(length = 1000)
-    private String notes;
-    
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-    
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-    
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-    
-    public void setId(Long id) {
-        this.id = id;
-    }
-    
-    public Long getPlantationId() {
-        return plantationId;
-    }
-    
-    public void setPlantationId(Long plantationId) {
-        this.plantationId = plantationId;
-    }
-    
-    public LocalDateTime getHarvestDate() {
-        return harvestDate;
-    }
-    
-    public void setHarvestDate(LocalDateTime harvestDate) {
-        this.harvestDate = harvestDate;
-    }
-    
-    public Double getWeight() {
-        return weight;
-    }
-    
-    public void setWeight(Double weight) {
-        this.weight = weight;
-    }
-    
-    public String getQuality() {
-        return quality;
-    }
-    
-    public void setQuality(String quality) {
-        this.quality = quality;
-    }
-    
-    public Long getHarvesterId() {
-        return harvesterId;
-    }
-    
-    public void setHarvesterId(Long harvesterId) {
-        this.harvesterId = harvesterId;
-    }
-    
-    public String getNotes() {
-        return notes;
-    }
-    
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-    
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    @Builder.Default
+    private HarvestStatus status = HarvestStatus.PENDING;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
+    @CreationTimestamp
+    @Column(name = "harvest_date", updatable = false)
+    private LocalDateTime harvestDate;
+
+    @Column(name = "status_updated_date")
+    private LocalDateTime statusUpdatedDate;
 }
