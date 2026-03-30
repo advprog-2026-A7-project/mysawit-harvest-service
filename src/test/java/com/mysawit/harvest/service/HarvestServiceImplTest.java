@@ -4,6 +4,7 @@ import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.dto.ViewHarvestRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
+import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.repository.HarvestRepository;
@@ -161,6 +162,24 @@ class HarvestServiceImplTest {
 
         assertNotNull(responses);
         assertTrue(responses.isEmpty());
+    }
+
+    @Test
+    void viewHarvest_AsForeman_ShouldThrowUnauthorizedForNow() {
+        assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.viewHarvest(viewRequest, null, foremanId)
+        );
+
+        verify(harvestRepository, never()).findAllByHarvesterIdAndHarvestDateBetween(any(), any(), any());
+    }
+
+    @Test
+    void viewHarvest_NoIdentity_ShouldThrowUnauthorized() {
+        assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.viewHarvest(viewRequest, null, null)
+        );
+
+        verify(harvestRepository, never()).findAllByHarvesterIdAndHarvestDateBetween(any(), any(), any());
     }
 
 //    @Test
