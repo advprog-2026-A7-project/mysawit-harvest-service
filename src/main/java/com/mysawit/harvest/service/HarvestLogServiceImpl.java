@@ -19,7 +19,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class HarvestLogServiceImpl implements HarvestService {
-
     private final HarvestRepository harvestRepository;
 
     @Override
@@ -27,7 +26,7 @@ public class HarvestLogServiceImpl implements HarvestService {
         LocalDateTime dayStart = LocalDate.now().atStartOfDay();
         LocalDateTime dayEnd = LocalDate.now().atTime(LocalTime.MAX);
 
-        boolean alreadyLoggedToday = harvestRepository.existsTodaysHarvestByHarvesterId(
+        boolean alreadyLoggedToday = harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
                 harvesterId, dayStart, dayEnd
         );
 
@@ -47,20 +46,20 @@ public class HarvestLogServiceImpl implements HarvestService {
                 .status(HarvestStatus.PENDING)
                 .build();
 
-        Harvest saved = harvestRepository.save(harvest);
+        Harvest harvestSaved = harvestRepository.save(harvest);
 
         return HarvestResponse.builder()
-                .id(saved.getId())
-                .plantationId(saved.getPlantationId())
-                .harvesterId(saved.getHarvesterId())
-                .foremanId(saved.getForemanId())
-                .weight(saved.getWeight())
-                .news(saved.getNews())
-                .photos(saved.getPhotos())
-                .status(saved.getStatus())
-                .rejectionReason(saved.getRejectionReason())
-                .harvestDate(saved.getHarvestDate())
-                .statusUpdatedDate(saved.getStatusUpdatedDate())
+                .id(harvestSaved.getId())
+                .plantationId(harvestSaved.getPlantationId())
+                .harvesterId(harvestSaved.getHarvesterId())
+                .foremanId(harvestSaved.getForemanId())
+                .weight(harvestSaved.getWeight())
+                .news(harvestSaved.getNews())
+                .photos(harvestSaved.getPhotos())
+                .status(harvestSaved.getStatus())
+                .rejectionReason(harvestSaved.getRejectionReason())
+                .harvestDate(harvestSaved.getHarvestDate())
+                .statusUpdatedDate(harvestSaved.getStatusUpdatedDate())
                 .build();
     }
 }
