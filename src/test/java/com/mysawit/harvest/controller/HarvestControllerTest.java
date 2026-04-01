@@ -1,7 +1,7 @@
 package com.mysawit.harvest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mysawit.harvest.dto.HarvestRequest;
+import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.model.HarvestStatus;
@@ -17,7 +17,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -35,14 +37,14 @@ class HarvestControllerTest {
 
     private UUID harvesterId;
     private UUID foremanId;
-    private HarvestRequest validRequest;
+    private LogHarvestRequest validRequest;
 
     @BeforeEach
     void setUp() {
         harvesterId = UUID.randomUUID();
         foremanId = UUID.randomUUID();
 
-        validRequest = new HarvestRequest();
+        validRequest = new LogHarvestRequest();
         validRequest.setPlantationId(UUID.randomUUID());
         validRequest.setWeight(300.5);
         validRequest.setNews("Successful harvest");
@@ -57,7 +59,7 @@ class HarvestControllerTest {
                 .weight(300.5)
                 .build();
 
-        when(harvestService.logHarvest(any(HarvestRequest.class), any(UUID.class), any(UUID.class)))
+        when(harvestService.logHarvest(any(LogHarvestRequest.class), any(UUID.class), any(UUID.class)))
                 .thenReturn(response);
 
         mockMvc.perform(post("/harvests")
@@ -85,7 +87,7 @@ class HarvestControllerTest {
 
     @Test
     void validationFailed() throws Exception {
-        HarvestRequest invalidRequest = new HarvestRequest();
+        LogHarvestRequest invalidRequest = new LogHarvestRequest();
 
         mockMvc.perform(post("/harvests")
                         .header("X-Harvester-Id", harvesterId)
@@ -94,5 +96,38 @@ class HarvestControllerTest {
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void getHistorySuccess() throws Exception {
+        HarvestResponse res = HarvestResponse.builder()
+                .harvesterId(harvesterId)
+                .weight(300.5)
+                .status(HarvestStatus.PENDING)
+                .build();
+
+        when(harvestService.viewHarvest(any(), eq(harvesterId), any()))
+                .thenReturn(java.util.List.of(res));
+
+        mockMvc.perform(get("/harvests/my")
+                        .header("X-Harvester-Id", harvesterId)
+                        .param("startDate", "2026-03-01T00:00:00")
+                        .param("endDate", "2026-03-07T23:59:59"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].weight").value(300.5));
+    }
+
+    @Test
+    void getHistoryUnauthorized() throws Exception {
+        UUID randomId = UUID.randomUUID();
+
+        when(harvestService.viewHarvest(any(), any(), any()))
+                .thenThrow(new com.mysawit.harvest.exception.UnauthorizedUserException("Unauthorized"));
+
+        mockMvc.perform(get("/harvests/my")
+                        .header("X-Harvester-Id", randomId.toString()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED_ACCESS"));
     }
 }
