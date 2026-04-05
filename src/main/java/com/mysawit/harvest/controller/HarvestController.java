@@ -1,5 +1,6 @@
 package com.mysawit.harvest.controller;
 
+import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
@@ -40,10 +41,20 @@ public class HarvestController {
         return ResponseEntity.ok(harvestService.harvesterViewHarvest(request, harvesterId, null));
     }
 
+    @GetMapping
+    public ResponseEntity<List<HarvestResponse>> viewAllHistory(
+            @ModelAttribute ForemanViewHarvestRequest request,
+            @RequestHeader(value = "X-Foreman-Id", required = false) UUID foremanId,
+            @RequestHeader(value = "X-Harvester-Id", required = false) UUID harvesterId
+    ) {
+        List<HarvestResponse> responses = harvestService.foremanViewHarvest(request, harvesterId, foremanId);
+        return ResponseEntity.ok(responses);
+    }
+
 
     // TODO: nama endpoint plan
-    // /harvests = buat log harvestny <don>
-    // /harvests/my = harvester liat log dia ndiri <don>
-    // /harvests = mandor liat semua history log harvesterny dan bs filtering
+    // /harvests = buat log harvestny <done>
+    // /harvests/my = harvester liat log dia ndiri <done>
+    // /harvests = mandor liat semua history log harvesterny dan bs filtering <done>
     // /harvests/harvester/{harvesterId} = mandor liat one specific harvester beserta harvestny
 }
