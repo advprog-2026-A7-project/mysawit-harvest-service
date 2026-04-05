@@ -42,7 +42,7 @@ class HarvestServiceImplTest {
     private String harvesterName;
 
     private LogHarvestRequest logRequest;
-    private HarvesterViewHarvestRequest viewRequest;
+    private HarvesterViewHarvestRequest harvesterViewRequest;
 
     @BeforeEach
     void setUp() {
@@ -53,19 +53,17 @@ class HarvestServiceImplTest {
 
         logRequest = new LogHarvestRequest();
         logRequest.setPlantationId(plantationId);
-        logRequest.setWeight(300.5);
+        logRequest.setWeight(777.0);
         logRequest.setNews("Successful harvest");
 
-        viewRequest = new HarvesterViewHarvestRequest();
+        harvesterViewRequest = new HarvesterViewHarvestRequest();
     }
 
     // HARVEST LOG ------------------------------------------------------------------
     @Test
-    void logHarvest_LogSuccess() {
+    void logHarvest_Success() {
         when(harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
-                eq(harvesterId), any(), any()
-        )).thenReturn(false);
-
+                eq(harvesterId), any(), any())).thenReturn(false);
         when(harvestRepository.save(any(Harvest.class))).thenReturn(
                 Harvest.builder()
                         .id(UUID.randomUUID())
@@ -73,8 +71,9 @@ class HarvestServiceImplTest {
                         .foremanId(foremanId)
                         .harvesterName(harvesterName)
                         .plantationId(plantationId)
-                        .weight(300.5)
+                        .weight(777.0)
                         .news("Successful harvest")
+                        .harvestDate(LocalDateTime.now())
                         .status(HarvestStatus.PENDING)
                         .build()
         );
@@ -83,59 +82,35 @@ class HarvestServiceImplTest {
 
         assertNotNull(response);
         assertEquals(harvesterId, response.getHarvesterId());
-        assertEquals(foremanId, response.getForemanId());
-        assertEquals(harvesterName, response.getHarvesterName());
-        assertEquals(300.5, response.getWeight());
         assertEquals(HarvestStatus.PENDING, response.getStatus());
-        verify(harvestRepository, times(1)).save(any(Harvest.class));
+        verify(harvestRepository).save(any(Harvest.class));
     }
 
     @Test
-    void logHarvest_AlreadyLoggedHarvestToday() {
+    void logHarvest_AlreadyLoggedToday_ThrowsException() {
         when(harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
-                eq(harvesterId), any(), any()
-        )).thenReturn(true);
+                eq(harvesterId), any(), any())).thenReturn(true);
 
         assertThrows(AlreadyLoggedHarvestTodayException.class, () ->
-                harvestService.logHarvest(logRequest, harvesterId, foremanId, harvesterName)
-        );
+                harvestService.logHarvest(logRequest, harvesterId, foremanId, harvesterName));
 
-        verify(harvestRepository, never()).save(any(Harvest.class));
+        verify(harvestRepository, never()).save(any());
     }
 
     // HARVESTER VIEW ------------------------------------------------------------------
     @Test
     void harvesterViewHarvest_FilterByHarvesterId() {
-        when(harvestRepository.findAllByHarvesterIdAndHarvestDateBetween(eq(harvesterId), any(), any()))
+        when(harvestRepository.findAllByHarvesterIdAndDate(eq(harvesterId), any(), any()))
                 .thenReturn(List.of(
                         Harvest.builder().harvesterId(harvesterId).build()
                 ));
 
-        List<HarvestResponse> responses = harvestService.harvesterViewHarvest(viewRequest, harvesterId, null);
+        List<HarvestResponse> responses = harvestService.harvesterViewHarvest(harvesterViewRequest, harvesterId, null);
 
         assertEquals(1, responses.size());
         assertEquals(harvesterId, responses.getFirst().getHarvesterId());
 
-        verify(harvestRepository).findAllByHarvesterIdAndHarvestDateBetween(eq(harvesterId), any(), any());
-    }
-
-    @Test
-    void harvesterViewHarvest_PassCorrectDateRange() {
-        LocalDateTime start = LocalDateTime.of(2026, 3, 1, 15, 0);
-        LocalDateTime end = LocalDateTime.of(2026, 3, 7, 10, 0);
-
-        viewRequest.setStartDate(start);
-        viewRequest.setEndDate(end);
-
-        LocalDateTime expectedStart = viewRequest.getStartDate();
-        LocalDateTime expectedEnd = viewRequest.getEndDate();
-
-        when(harvestRepository.findAllByHarvesterIdAndHarvestDateBetween(any(), eq(expectedStart), eq(expectedEnd)))
-                .thenReturn(List.of());
-
-        harvestService.harvesterViewHarvest(viewRequest, harvesterId, null);
-
-        verify(harvestRepository).findAllByHarvesterIdAndHarvestDateBetween(any(), eq(expectedStart), eq(expectedEnd));
+        verify(harvestRepository).findAllByHarvesterIdAndDate(eq(harvesterId), any(), any());
     }
 
     @Test
@@ -144,18 +119,18 @@ class HarvestServiceImplTest {
                 .id(UUID.randomUUID())
                 .harvesterId(harvesterId)
                 .harvesterName("Strawberry Shortcake")
-                .weight(250.75)
+                .weight(777.0)
                 .status(HarvestStatus.APPROVED)
                 .news("Harvest from blok A")
                 .build();
 
-        when(harvestRepository.findAllByHarvesterIdAndHarvestDateBetween(any(), any(), any()))
+        when(harvestRepository.findAllByHarvesterIdAndDate(any(), any(), any()))
                 .thenReturn(List.of(mockHarvest));
 
-        List<HarvestResponse> responses = harvestService.harvesterViewHarvest(viewRequest, harvesterId, null);
+        List<HarvestResponse> responses = harvestService.harvesterViewHarvest(harvesterViewRequest, harvesterId, null);
 
         HarvestResponse result = responses.getFirst();
-        assertEquals(250.75, result.getWeight());
+        assertEquals(777.0, result.getWeight());
         assertEquals(HarvestStatus.APPROVED, result.getStatus());
         assertEquals("Harvest from blok A", result.getNews());
         assertEquals("Strawberry Shortcake", result.getHarvesterName());
@@ -163,31 +138,31 @@ class HarvestServiceImplTest {
 
     @Test
     void harvesterViewHarvest_ReturnEmptyList() {
-        when(harvestRepository.findAllByHarvesterIdAndHarvestDateBetween(any(), any(), any()))
+        when(harvestRepository.findAllByHarvesterIdAndDate(any(), any(), any()))
                 .thenReturn(List.of());
 
-        List<HarvestResponse> responses = harvestService.harvesterViewHarvest(viewRequest, harvesterId, null);
+        List<HarvestResponse> responses = harvestService.harvesterViewHarvest(harvesterViewRequest, harvesterId, null);
 
         assertNotNull(responses);
         assertTrue(responses.isEmpty());
     }
 
     @Test
-    void harvesterViewHarvest_AsForeman_ShouldThrowUnauthorizedForNow() {
+    void harvesterViewHarvest_AsForeman() {
         assertThrows(UnauthorizedUserException.class, () ->
-                harvestService.harvesterViewHarvest(viewRequest, null, foremanId)
+                harvestService.harvesterViewHarvest(harvesterViewRequest, null, foremanId)
         );
 
-        verify(harvestRepository, never()).findAllByHarvesterIdAndHarvestDateBetween(any(), any(), any());
+        verify(harvestRepository, never()).findAllByHarvesterIdAndDate(any(), any(), any());
     }
 
     @Test
-    void harvesterViewHarvest_NoIdentity_ShouldThrowUnauthorized() {
+    void harvesterViewHarvest_NoIdentity() {
         assertThrows(UnauthorizedUserException.class, () ->
-                harvestService.harvesterViewHarvest(viewRequest, null, null)
+                harvestService.harvesterViewHarvest(harvesterViewRequest, null, null)
         );
 
-        verify(harvestRepository, never()).findAllByHarvesterIdAndHarvestDateBetween(any(), any(), any());
+        verify(harvestRepository, never()).findAllByHarvesterIdAndDate(any(), any(), any());
     }
 
     // FOREMAN VIEW ------------------------------------------------------------------

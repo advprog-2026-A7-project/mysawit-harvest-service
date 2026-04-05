@@ -48,6 +48,7 @@ public class HarvestServiceImpl implements HarvestService {
                 .weight(request.getWeight())
                 .news(request.getNews())
                 .photos(request.getPhotos())
+                .harvestDate(LocalDateTime.now())
                 .status(HarvestStatus.PENDING)
                 .build();
 
@@ -58,16 +59,18 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
-        List<Harvest> harvestList;
-
-        if (harvesterId != null) {
-            harvestList = harvestRepository.findAllByHarvesterIdAndHarvestDateBetween(
-                    harvesterId, request.getStartDate(), request.getEndDate());
-        } else if (foremanId != null) {
-            throw new UnauthorizedUserException("Only registered harvesters are permitted to view their own harvest history.");
-        } else {
+        if (harvesterId == null) {
+            if (foremanId != null) {
+                throw new UnauthorizedUserException("Only registered harvesters are permitted to view their own harvest history.");
+            }
             throw new UnauthorizedUserException("Required identity to view harvest logs.");
         }
+
+        List<Harvest> harvestList = harvestRepository.findAllByHarvesterIdAndDate(
+                harvesterId,
+                request.getStartDate(),
+                request.getEndDate()
+        );
 
         return harvestList.stream()
                 .map(this::mapResponse)
