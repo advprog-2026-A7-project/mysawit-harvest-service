@@ -1,5 +1,6 @@
 package com.mysawit.harvest.service;
 
+import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
@@ -43,6 +44,7 @@ public class HarvestServiceImpl implements HarvestService {
                 .plantationId(request.getPlantationId())
                 .harvesterId(harvesterId)
                 .foremanId(foremanId)
+                .harvesterName(request.getHarvesterName())
                 .weight(request.getWeight())
                 .news(request.getNews())
                 .photos(request.getPhotos())
@@ -55,7 +57,7 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
-    public List<HarvestResponse> viewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
+    public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
         List<Harvest> harvestList;
 
         if (harvesterId != null) {
@@ -72,12 +74,18 @@ public class HarvestServiceImpl implements HarvestService {
                 .toList();
     }
 
+    @Override
+    public List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
+        return List.of();
+    }
+
     private HarvestResponse mapResponse(Harvest harvest) {
         return HarvestResponse.builder()
                 .id(harvest.getId())
                 .plantationId(harvest.getPlantationId())
                 .harvesterId(harvest.getHarvesterId())
                 .foremanId(harvest.getForemanId())
+                .harvesterName(harvest.getHarvesterName())
                 .weight(harvest.getWeight())
                 .news(harvest.getNews())
                 .photos(harvest.getPhotos())

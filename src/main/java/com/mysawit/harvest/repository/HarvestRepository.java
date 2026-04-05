@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface HarvestRepository extends JpaRepository<Harvest, UUID> {
     boolean existsHarvestByHarvesterIdAndHarvestDateBetween(UUID harvesterId, LocalDateTime dayStart, LocalDateTime dayEnd);
     List<Harvest> findAllByHarvesterIdAndHarvestDateBetween(UUID harvesterId, LocalDateTime dayStart, LocalDateTime dayEnd);
+    List<Harvest> findAllByForemanIdAndHarvesterNameContainingIgnoreCaseAndHarvestDateBetween(UUID foremanId, String harvesterName, LocalDateTime dayStart, LocalDateTime dayEnd);
 }

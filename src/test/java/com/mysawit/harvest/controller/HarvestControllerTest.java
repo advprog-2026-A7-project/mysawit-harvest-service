@@ -46,6 +46,7 @@ class HarvestControllerTest {
 
         validRequest = new LogHarvestRequest();
         validRequest.setPlantationId(UUID.randomUUID());
+        validRequest.setHarvesterName("Budi Utomo");
         validRequest.setWeight(300.5);
         validRequest.setNews("Successful harvest");
     }
@@ -55,6 +56,7 @@ class HarvestControllerTest {
         HarvestResponse response = HarvestResponse.builder()
                 .harvesterId(harvesterId)
                 .foremanId(foremanId)
+                .harvesterName("Budi Utomo")
                 .status(HarvestStatus.PENDING)
                 .weight(300.5)
                 .build();
@@ -102,11 +104,12 @@ class HarvestControllerTest {
     void getHistorySuccess() throws Exception {
         HarvestResponse res = HarvestResponse.builder()
                 .harvesterId(harvesterId)
+                .harvesterName("Budi Utomo")
                 .weight(300.5)
                 .status(HarvestStatus.PENDING)
                 .build();
 
-        when(harvestService.viewHarvest(any(), eq(harvesterId), any()))
+        when(harvestService.harvesterViewHarvest(any(), eq(harvesterId), any()))
                 .thenReturn(java.util.List.of(res));
 
         mockMvc.perform(get("/harvests/my")
@@ -115,14 +118,15 @@ class HarvestControllerTest {
                         .param("endDate", "2026-03-07T23:59:59"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].weight").value(300.5));
+                .andExpect(jsonPath("$[0].weight").value(300.5))
+                .andExpect(jsonPath("$.[0].harvesterName").value("Budi Utomo"));
     }
 
     @Test
     void getHistoryUnauthorized() throws Exception {
         UUID randomId = UUID.randomUUID();
 
-        when(harvestService.viewHarvest(any(), any(), any()))
+        when(harvestService.harvesterViewHarvest(any(), any(), any()))
                 .thenThrow(new com.mysawit.harvest.exception.UnauthorizedUserException("Unauthorized"));
 
         mockMvc.perform(get("/harvests/my")

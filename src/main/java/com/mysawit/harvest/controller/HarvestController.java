@@ -37,7 +37,7 @@ public class HarvestController {
             @ModelAttribute HarvesterViewHarvestRequest request,
             @RequestHeader(value = "X-Harvester-Id", required = false) UUID harvesterId
             ) {
-        return ResponseEntity.ok(harvestService.viewHarvest(request, harvesterId, null));
+        return ResponseEntity.ok(harvestService.harvesterViewHarvest(request, harvesterId, null));
     }
 
 
