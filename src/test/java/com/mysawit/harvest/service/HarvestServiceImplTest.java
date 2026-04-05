@@ -1,5 +1,6 @@
 package com.mysawit.harvest.service;
 
+import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
@@ -188,5 +189,68 @@ class HarvestServiceImplTest {
     }
 
     // FOREMAN VIEW ------------------------------------------------------------------
+    @Test
+    void foremanViewHarvest_FilterNameAndDate_Success() { // User isi nama dan tanggal
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+        req.setHarvesterName("Budi");
+        req.setStartDate(LocalDateTime.now().minusDays(7));
+        req.setEndDate(LocalDateTime.now());
 
+        when(harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCaseAndHarvestDateBetween(
+                eq(foremanId), eq("Budi"), any(), any()))
+                .thenReturn(List.of(Harvest.builder().harvesterName("Budi Utomo").build()));
+
+        List<HarvestResponse> responses = harvestService.foremanViewHarvest(req, null, foremanId);
+
+        assertEquals(1, responses.size());
+        verify(harvestRepository).findAllByForemanIdAndHarvesterNameContainingIgnoreCaseAndHarvestDateBetween(any(), any(), any(), any());
+    }
+
+    @Test
+    void foremanViewHarvest_FilterNameOnly_Success() { // User isi nama
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+        req.setHarvesterName("Budi");
+        req.setStartDate(null);
+        req.setEndDate(null);
+
+        when(harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Budi")))
+                .thenReturn(List.of(Harvest.builder().harvesterName("Budi Utomo").build()));
+
+        List<HarvestResponse> responses = harvestService.foremanViewHarvest(req, null, foremanId);
+
+        assertEquals(1, responses.size());
+        verify(harvestRepository).findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Budi"));
+    }
+
+    @Test
+    void foremanViewHarvest_FilterDateOnly_Success() { // User isi tanggal
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+        req.setHarvesterName("");
+        req.setStartDate(LocalDateTime.now().minusDays(7));
+        req.setEndDate(LocalDateTime.now());
+
+        when(harvestRepository.findAllByForemanIdAndHarvestDateBetween(eq(foremanId), any(), any()))
+                .thenReturn(List.of(new Harvest(), new Harvest()));
+
+        List<HarvestResponse> responses = harvestService.foremanViewHarvest(req, null, foremanId);
+
+        assertEquals(2, responses.size());
+        verify(harvestRepository).findAllByForemanIdAndHarvestDateBetween(eq(foremanId), any(), any());
+    }
+
+    @Test
+    void foremanViewHarvest_NoFilter_Success() { // User tidak isi apa2
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+        req.setHarvesterName(null);
+        req.setStartDate(null);
+        req.setEndDate(null);
+
+        when(harvestRepository.findAllByForemanId(eq(foremanId)))
+                .thenReturn(List.of(new Harvest(), new Harvest(), new Harvest()));
+
+        List<HarvestResponse> responses = harvestService.foremanViewHarvest(req, null, foremanId);
+
+        assertEquals(3, responses.size());
+        verify(harvestRepository).findAllByForemanId(eq(foremanId));
+    }
 }
