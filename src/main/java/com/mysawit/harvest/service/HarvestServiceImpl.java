@@ -2,7 +2,7 @@ package com.mysawit.harvest.service;
 
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
-import com.mysawit.harvest.dto.ViewHarvestRequest;
+import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.Harvest;
@@ -55,7 +55,7 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
-    public List<HarvestResponse> viewHarvest(ViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
+    public List<HarvestResponse> viewHarvest(ForemanViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
         List<Harvest> harvestList;
 
         if (harvesterId != null) {

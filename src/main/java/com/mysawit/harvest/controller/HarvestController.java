@@ -2,7 +2,7 @@ package com.mysawit.harvest.controller;
 
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
-import com.mysawit.harvest.dto.ViewHarvestRequest;
+import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
 import com.mysawit.harvest.service.HarvestService;
 
 import jakarta.validation.Valid;
@@ -34,7 +34,7 @@ public class HarvestController {
 
     @GetMapping("/my")
     public ResponseEntity<List<HarvestResponse>> viewMyHistory(
-            @ModelAttribute ViewHarvestRequest request,
+            @ModelAttribute ForemanViewHarvestRequest request,
             @RequestHeader(value = "X-Harvester-Id", required = false) UUID harvesterId
             ) {
         return ResponseEntity.ok(harvestService.viewHarvest(request, harvesterId, null));
