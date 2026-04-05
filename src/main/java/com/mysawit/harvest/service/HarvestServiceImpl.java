@@ -26,7 +26,7 @@ public class HarvestServiceImpl implements HarvestService {
     private final HarvestRepository harvestRepository;
 
     @Override
-    public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId) {
+    public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId, String harvesterName) {
         LocalDateTime dayStart = LocalDate.now().atStartOfDay();
         LocalDateTime dayEnd = LocalDate.now().atTime(LocalTime.MAX);
 
@@ -44,7 +44,7 @@ public class HarvestServiceImpl implements HarvestService {
                 .plantationId(request.getPlantationId())
                 .harvesterId(harvesterId)
                 .foremanId(foremanId)
-                .harvesterName(request.getHarvesterName())
+                .harvesterName(harvesterName)
                 .weight(request.getWeight())
                 .news(request.getNews())
                 .photos(request.getPhotos())

@@ -36,16 +36,17 @@ class HarvestControllerTest {
 
     private UUID harvesterId;
     private UUID foremanId;
+    private String harvesterName;
     private LogHarvestRequest validRequest;
 
     @BeforeEach
     void setUp() {
         harvesterId = UUID.randomUUID();
         foremanId = UUID.randomUUID();
+        harvesterName = "Budi Utomo";
 
         validRequest = new LogHarvestRequest();
         validRequest.setPlantationId(UUID.randomUUID());
-        validRequest.setHarvesterName("Budi Utomo");
         validRequest.setWeight(300.5);
         validRequest.setNews("Successful harvest");
     }
@@ -60,12 +61,13 @@ class HarvestControllerTest {
                 .weight(300.5)
                 .build();
 
-        when(harvestService.logHarvest(any(LogHarvestRequest.class), any(UUID.class), any(UUID.class)))
+        when(harvestService.logHarvest(any(LogHarvestRequest.class), any(UUID.class), any(UUID.class), eq(harvesterName)))
                 .thenReturn(response);
 
         mockMvc.perform(post("/harvests")
                         .header("X-Harvester-Id", harvesterId)
                         .header("X-Foreman-Id", foremanId)
+                        .header("X-Harvester-Name", harvesterName)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
@@ -74,12 +76,13 @@ class HarvestControllerTest {
 
     @Test
     void alreadyLogged() throws Exception {
-        when(harvestService.logHarvest(any(), any(), any()))
+        when(harvestService.logHarvest(any(), any(), any(), any()))
                 .thenThrow(new AlreadyLoggedHarvestTodayException("Already logged today"));
 
         mockMvc.perform(post("/harvests")
                         .header("X-Harvester-Id", harvesterId)
                         .header("X-Foreman-Id", foremanId)
+                        .header("X-Harvester-Name", harvesterName)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isConflict())
@@ -93,6 +96,7 @@ class HarvestControllerTest {
         mockMvc.perform(post("/harvests")
                         .header("X-Harvester-Id", harvesterId)
                         .header("X-Foreman-Id", foremanId)
+                        .header("X-Harvester-Name", harvesterName)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
@@ -103,7 +107,7 @@ class HarvestControllerTest {
     void getHistorySuccess() throws Exception {
         HarvestResponse res = HarvestResponse.builder()
                 .harvesterId(harvesterId)
-                .harvesterName("Budi Utomo")
+                .harvesterName(harvesterName)
                 .weight(300.5)
                 .status(HarvestStatus.PENDING)
                 .build();
@@ -139,7 +143,7 @@ class HarvestControllerTest {
         HarvestResponse res = HarvestResponse.builder()
                 .harvesterId(UUID.randomUUID())
                 .foremanId(foremanId)
-                .harvesterName("Budi Utomo")
+                .harvesterName(harvesterName)
                 .weight(500.0)
                 .status(HarvestStatus.PENDING)
                 .build();

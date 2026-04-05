@@ -39,6 +39,7 @@ class HarvestServiceImplTest {
     private UUID harvesterId;
     private UUID foremanId;
     private UUID plantationId;
+    private String harvesterName;
 
     private LogHarvestRequest logRequest;
     private HarvesterViewHarvestRequest viewRequest;
@@ -48,10 +49,10 @@ class HarvestServiceImplTest {
         harvesterId = UUID.randomUUID();
         foremanId = UUID.randomUUID();
         plantationId = UUID.randomUUID();
+        harvesterName = "Budi Utomo";
 
         logRequest = new LogHarvestRequest();
         logRequest.setPlantationId(plantationId);
-        logRequest.setHarvesterName("Budi Utomo");
         logRequest.setWeight(300.5);
         logRequest.setNews("Successful harvest");
 
@@ -70,7 +71,7 @@ class HarvestServiceImplTest {
                         .id(UUID.randomUUID())
                         .harvesterId(harvesterId)
                         .foremanId(foremanId)
-                        .harvesterName("Budi Utomo")
+                        .harvesterName(harvesterName)
                         .plantationId(plantationId)
                         .weight(300.5)
                         .news("Successful harvest")
@@ -78,11 +79,12 @@ class HarvestServiceImplTest {
                         .build()
         );
 
-        HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId, foremanId);
+        HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId, foremanId, harvesterName);
 
         assertNotNull(response);
         assertEquals(harvesterId, response.getHarvesterId());
         assertEquals(foremanId, response.getForemanId());
+        assertEquals(harvesterName, response.getHarvesterName());
         assertEquals(300.5, response.getWeight());
         assertEquals(HarvestStatus.PENDING, response.getStatus());
         verify(harvestRepository, times(1)).save(any(Harvest.class));
@@ -95,7 +97,7 @@ class HarvestServiceImplTest {
         )).thenReturn(true);
 
         assertThrows(AlreadyLoggedHarvestTodayException.class, () ->
-                harvestService.logHarvest(logRequest, harvesterId, foremanId)
+                harvestService.logHarvest(logRequest, harvesterId, foremanId, harvesterName)
         );
 
         verify(harvestRepository, never()).save(any(Harvest.class));

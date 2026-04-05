@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface HarvestService {
-    HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId);
+    HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId, String harvesterName);
 
     List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId, UUID foremanId);
 

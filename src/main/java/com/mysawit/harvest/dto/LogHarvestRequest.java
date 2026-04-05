@@ -13,9 +13,6 @@ public class LogHarvestRequest {
     @NotNull(message = "Plantation ID is required")
     private UUID plantationId;
 
-    @NotBlank(message = "Harvester name is required")
-    private String harvesterName;
-
     @NotNull(message = "Weight is required")
     @Positive(message = "Weight must be positive")
     private Double weight;

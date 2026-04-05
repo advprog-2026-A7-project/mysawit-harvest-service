@@ -36,7 +36,6 @@ class LogHarvestRequestTest {
     void validHarvest() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(UUID.randomUUID());
-        request.setHarvesterName("Budi Utomo");
         request.setWeight(300.5);
         request.setNews("Successful harvest");
 
@@ -48,7 +47,6 @@ class LogHarvestRequestTest {
     void nullPlantationId() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(null);
-        request.setHarvesterName("Budi Utomo");
         request.setWeight(300.5);
         request.setNews("Successful harvest");
 
@@ -58,36 +56,9 @@ class LogHarvestRequestTest {
     }
 
     @Test
-    void nullHarvesterName() {
-        LogHarvestRequest request = new LogHarvestRequest();
-        request.setPlantationId(UUID.randomUUID());
-        request.setHarvesterName(null);
-        request.setWeight(300.5);
-        request.setNews("Successful harvest");
-
-        Set<ConstraintViolation<LogHarvestRequest>> violations = validator.validate(request);
-        assertFalse(violations.isEmpty());
-        assertTrue(hasViolationOnField(violations, "harvesterName"));
-    }
-
-    @Test
-    void blankHarvesterName() {
-        LogHarvestRequest request = new LogHarvestRequest();
-        request.setPlantationId(UUID.randomUUID());
-        request.setHarvesterName("   ");
-        request.setWeight(300.5);
-        request.setNews("Successful harvest");
-
-        Set<ConstraintViolation<LogHarvestRequest>> violations = validator.validate(request);
-        assertFalse(violations.isEmpty());
-        assertTrue(hasViolationOnField(violations, "harvesterName"));
-    }
-
-    @Test
     void nullWeight() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(UUID.randomUUID());
-        request.setHarvesterName("Budi Utomo");
         request.setWeight(null);
         request.setNews("Successful harvest");
 
@@ -100,7 +71,6 @@ class LogHarvestRequestTest {
     void negativeWeight() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(UUID.randomUUID());
-        request.setHarvesterName("Budi Utomo");
         request.setWeight(-300.5);
         request.setNews("Successful harvest");
 
@@ -113,7 +83,6 @@ class LogHarvestRequestTest {
     void zeroWeight() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(UUID.randomUUID());
-        request.setHarvesterName("Budi Utomo");
         request.setWeight(0.0);
         request.setNews("Successful harvest");
 
@@ -126,7 +95,6 @@ class LogHarvestRequestTest {
     void nullNews() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(UUID.randomUUID());
-        request.setHarvesterName("Budi Utomo");
         request.setWeight(300.5);
         request.setNews(null);
 
@@ -139,7 +107,6 @@ class LogHarvestRequestTest {
     void nullPhotos() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(UUID.randomUUID());
-        request.setHarvesterName("Budi Utomo");
         request.setWeight(300.5);
         request.setNews("Successful harvest");
         request.setPhotos(null);

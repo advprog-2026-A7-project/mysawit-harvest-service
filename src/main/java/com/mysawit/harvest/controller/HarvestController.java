@@ -27,9 +27,10 @@ public class HarvestController {
     public ResponseEntity<HarvestResponse> logHarvest(
             @Valid @RequestBody LogHarvestRequest request,
             @RequestHeader("X-Harvester-Id") UUID harvesterId,
+            @RequestHeader("X-Harvester-Name") String harvesterName,
             @RequestHeader("X-Foreman-Id") UUID foremanId
             ) {
-        HarvestResponse response = harvestService.logHarvest(request, harvesterId, foremanId);
+        HarvestResponse response = harvestService.logHarvest(request, harvesterId, foremanId, harvesterName);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
