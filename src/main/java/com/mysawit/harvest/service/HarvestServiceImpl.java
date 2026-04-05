@@ -77,14 +77,17 @@ public class HarvestServiceImpl implements HarvestService {
     @Override
     public List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
         if (foremanId == null) {
-            throw new UnauthorizedUserException("Only registered foremen are permitted to access");
+            if (harvesterId != null) {
+                throw new UnauthorizedUserException("Only registered foremen are permitted to access.");
+            }
+            throw new UnauthorizedUserException("Required identity to view harvest logs.");
         }
+
+        List<Harvest> harvestList;
 
         String name = request.getHarvesterName();
         LocalDateTime start = request.getStartDate();
         LocalDateTime end = request.getEndDate();
-
-        List<Harvest> harvestList;
 
         // User isi name dan tanggal
         if (isNotBlank(name) && start != null && end != null) {

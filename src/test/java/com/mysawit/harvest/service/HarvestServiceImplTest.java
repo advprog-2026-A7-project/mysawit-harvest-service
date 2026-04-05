@@ -253,4 +253,68 @@ class HarvestServiceImplTest {
         assertEquals(3, responses.size());
         verify(harvestRepository).findAllByForemanId(eq(foremanId));
     }
+
+    @Test
+    void foremanViewHarvest_ForemanIdNull() {
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+
+        assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.foremanViewHarvest(req, null, null)
+        );
+
+        verify(harvestRepository, never()).findAllByForemanId(any());
+    }
+
+    @Test
+    void foremanViewHarvest_AsHarvester() {
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+
+        UnauthorizedUserException exception = assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.foremanViewHarvest(req, harvesterId, null)
+        );
+
+        assertEquals("Only registered foremen are permitted to access.", exception.getMessage());
+        verify(harvestRepository, never()).findAllByForemanId(any());
+    }
+
+    @Test
+    void foremanViewHarvest_NoIdentity() {
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+
+        UnauthorizedUserException exception = assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.foremanViewHarvest(req, null, null)
+        );
+
+        assertEquals("Required identity to view harvest logs.", exception.getMessage());
+    }
+
+    @Test
+    void foremanViewHarvest_NamePresentButOnlyStartDate() {
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+        req.setHarvesterName("Budi");
+        req.setStartDate(LocalDateTime.now());
+        req.setEndDate(null);
+
+        when(harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Budi")))
+                .thenReturn(List.of(new Harvest()));
+
+        harvestService.foremanViewHarvest(req, null, foremanId);
+
+        verify(harvestRepository).findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Budi"));
+    }
+
+    @Test
+    void foremanViewHarvest_NoNameAndIncompleteDate() {
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+        req.setHarvesterName(null);
+        req.setStartDate(LocalDateTime.now());
+        req.setEndDate(null);
+
+        when(harvestRepository.findAllByForemanId(eq(foremanId)))
+                .thenReturn(List.of(new Harvest()));
+
+        harvestService.foremanViewHarvest(req, null, foremanId);
+
+        verify(harvestRepository).findAllByForemanId(eq(foremanId));
+    }
 }
