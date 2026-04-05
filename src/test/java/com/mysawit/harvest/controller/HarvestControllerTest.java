@@ -16,8 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -131,6 +130,68 @@ class HarvestControllerTest {
 
         mockMvc.perform(get("/harvests/my")
                         .header("X-Harvester-Id", randomId.toString()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED_ACCESS"));
+    }
+
+    @Test
+    void viewAllHistoryForemanSuccess() throws Exception {
+        HarvestResponse res = HarvestResponse.builder()
+                .harvesterId(UUID.randomUUID())
+                .foremanId(foremanId)
+                .harvesterName("Budi Utomo")
+                .weight(500.0)
+                .status(HarvestStatus.PENDING)
+                .build();
+
+        when(harvestService.foremanViewHarvest(any(), any(), eq(foremanId)))
+                .thenReturn(java.util.List.of(res));
+
+        mockMvc.perform(get("/harvests")
+                        .header("X-Foreman-Id", foremanId)
+                        .param("harvesterName", "Budi")
+                        .param("startDate", "2026-04-01T00:00:00")
+                        .param("endDate", "2026-04-06T23:59:59"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].harvesterName").value("Budi Utomo"))
+                .andExpect(jsonPath("$[0].weight").value(500.0));
+    }
+
+    @Test
+    void viewAllHistoryForemanNoFilterSuccess() throws Exception {
+        HarvestResponse mockResponse = HarvestResponse.builder()
+                .id(UUID.randomUUID())
+                .harvesterName("Budi")
+                .build();
+
+        when(harvestService.foremanViewHarvest(any(), any(), eq(foremanId)))
+                .thenReturn(java.util.List.of(mockResponse, mockResponse));
+
+        mockMvc.perform(get("/harvests")
+                        .header("X-Foreman-Id", foremanId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void viewAllHistoryForbiddenForHarvester() throws Exception {
+        when(harvestService.foremanViewHarvest(any(), any(), isNull()))
+                .thenThrow(new com.mysawit.harvest.exception.UnauthorizedUserException("Only registered foremen are permitted to access."));
+
+        mockMvc.perform(get("/harvests")
+                        .header("X-Harvester-Id", harvesterId))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED_ACCESS"))
+                .andExpect(jsonPath("$.message").value("Only registered foremen are permitted to access."));
+    }
+
+    @Test
+    void viewAllHistoryNoIdentity() throws Exception {
+        when(harvestService.foremanViewHarvest(any(), isNull(), isNull()))
+                .thenThrow(new com.mysawit.harvest.exception.UnauthorizedUserException("Required identity to view harvest logs."));
+
+        mockMvc.perform(get("/harvests"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED_ACCESS"));
     }
