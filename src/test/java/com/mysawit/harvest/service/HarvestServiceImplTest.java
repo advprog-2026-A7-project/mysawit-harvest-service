@@ -167,131 +167,42 @@ class HarvestServiceImplTest {
 
     // FOREMAN VIEW ------------------------------------------------------------------
     @Test
-    void foremanViewHarvest_FilterNameAndDate_Success() { // User isi nama dan tanggal
+    void foremanViewHarvest_Success() {
         ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
         req.setHarvesterName("Strawberry Shortcake");
         req.setStartDate(LocalDateTime.now().minusDays(7));
         req.setEndDate(LocalDateTime.now());
 
-        when(harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCaseAndHarvestDateBetween(
-                eq(foremanId), eq("Strawberry Shortcake"), any(), any()))
-                .thenReturn(List.of(Harvest.builder().harvesterName("Strawberry Shortcake").build()));
-
-        List<HarvestResponse> responses = harvestService.foremanViewHarvest(req, null, foremanId);
-
-        assertEquals(1, responses.size());
-        verify(harvestRepository).findAllByForemanIdAndHarvesterNameContainingIgnoreCaseAndHarvestDateBetween(any(), any(), any(), any());
-    }
-
-    @Test
-    void foremanViewHarvest_FilterNameOnly_Success() { // User isi nama
-        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
-        req.setHarvesterName("Strawberry Shortcake");
-        req.setStartDate(null);
-        req.setEndDate(null);
-
-        when(harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Strawberry Shortcake")))
-                .thenReturn(List.of(Harvest.builder().harvesterName("Strawberry Shortcake").build()));
-
-        List<HarvestResponse> responses = harvestService.foremanViewHarvest(req, null, foremanId);
-
-        assertEquals(1, responses.size());
-        verify(harvestRepository).findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Strawberry Shortcake"));
-    }
-
-    @Test
-    void foremanViewHarvest_FilterDateOnly_Success() { // User isi tanggal
-        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
-        req.setHarvesterName("");
-        req.setStartDate(LocalDateTime.now().minusDays(7));
-        req.setEndDate(LocalDateTime.now());
-
-        when(harvestRepository.findAllByForemanIdAndHarvestDateBetween(eq(foremanId), any(), any()))
+        when(harvestRepository.findAllByHarvesterNameAndDate(
+                eq(foremanId), any(), any(), any()))
                 .thenReturn(List.of(new Harvest(), new Harvest()));
 
         List<HarvestResponse> responses = harvestService.foremanViewHarvest(req, null, foremanId);
 
         assertEquals(2, responses.size());
-        verify(harvestRepository).findAllByForemanIdAndHarvestDateBetween(eq(foremanId), any(), any());
+        verify(harvestRepository).findAllByHarvesterNameAndDate(
+                eq(foremanId), eq("Strawberry Shortcake"), any(), any());
     }
 
     @Test
-    void foremanViewHarvest_NoFilter_Success() { // User tidak isi apa2
-        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
-        req.setHarvesterName(null);
-        req.setStartDate(null);
-        req.setEndDate(null);
-
-        when(harvestRepository.findAllByForemanId(eq(foremanId)))
-                .thenReturn(List.of(new Harvest(), new Harvest(), new Harvest()));
-
-        List<HarvestResponse> responses = harvestService.foremanViewHarvest(req, null, foremanId);
-
-        assertEquals(3, responses.size());
-        verify(harvestRepository).findAllByForemanId(eq(foremanId));
-    }
-
-    @Test
-    void foremanViewHarvest_ForemanIdNull() {
-        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
-
-        assertThrows(UnauthorizedUserException.class, () ->
-                harvestService.foremanViewHarvest(req, null, null)
-        );
-
-        verify(harvestRepository, never()).findAllByForemanId(any());
-    }
-
-    @Test
-    void foremanViewHarvest_AsHarvester() {
+    void foremanViewHarvest_AsHarvester_ThrowsException() {
         ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
 
         UnauthorizedUserException exception = assertThrows(UnauthorizedUserException.class, () ->
-                harvestService.foremanViewHarvest(req, harvesterId, null)
-        );
+                harvestService.foremanViewHarvest(req, harvesterId, null));
 
         assertEquals("Only registered foremen are permitted to access.", exception.getMessage());
-        verify(harvestRepository, never()).findAllByForemanId(any());
+        verify(harvestRepository, never()).findAllByHarvesterNameAndDate(any(), any(), any(), any());
     }
 
     @Test
-    void foremanViewHarvest_NoIdentity() {
+    void foremanViewHarvest_NoIdentity_ThrowsException() {
         ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
 
         UnauthorizedUserException exception = assertThrows(UnauthorizedUserException.class, () ->
-                harvestService.foremanViewHarvest(req, null, null)
-        );
+                harvestService.foremanViewHarvest(req, null, null));
 
         assertEquals("Required identity to view harvest logs.", exception.getMessage());
-    }
-
-    @Test
-    void foremanViewHarvest_NamePresentButOnlyStartDate() {
-        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
-        req.setHarvesterName("Strawberry Shortcake");
-        req.setStartDate(LocalDateTime.now());
-        req.setEndDate(null);
-
-        when(harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Strawberry Shortcake")))
-                .thenReturn(List.of(new Harvest()));
-
-        harvestService.foremanViewHarvest(req, null, foremanId);
-
-        verify(harvestRepository).findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Strawberry Shortcake"));
-    }
-
-    @Test
-    void foremanViewHarvest_NoNameAndIncompleteDate() {
-        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
-        req.setHarvesterName(null);
-        req.setStartDate(LocalDateTime.now());
-        req.setEndDate(null);
-
-        when(harvestRepository.findAllByForemanId(eq(foremanId)))
-                .thenReturn(List.of(new Harvest()));
-
-        harvestService.foremanViewHarvest(req, null, foremanId);
-
-        verify(harvestRepository).findAllByForemanId(eq(foremanId));
+        verify(harvestRepository, never()).findAllByHarvesterNameAndDate(any(), any(), any(), any());
     }
 }

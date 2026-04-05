@@ -25,9 +25,15 @@ public interface HarvestRepository extends JpaRepository<Harvest, UUID> {
     );
 
     // Foreman view
-    List<Harvest> findAllByForemanIdAndHarvesterNameContainingIgnoreCaseAndHarvestDateBetween(UUID foremanId, String harvesterName, LocalDateTime dayStart, LocalDateTime dayEnd);
-    List<Harvest> findAllByForemanIdAndHarvesterNameContainingIgnoreCase(UUID foremanId, String name);
-    List<Harvest> findAllByForemanIdAndHarvestDateBetween(UUID foremanId, LocalDateTime start, LocalDateTime end);
-    List<Harvest> findAllByForemanId(UUID foremanId);
-
+    @Query("SELECT h FROM Harvest h WHERE h.foremanId = :foremanId " +
+            "AND (:name IS NULL OR LOWER(h.harvesterName) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+            "AND (:start IS NULL OR h.harvestDate >= :start) " +
+            "AND (:end IS NULL OR h.harvestDate <= :end) " +
+            "ORDER BY h.harvestDate DESC")
+    List<Harvest> findAllByHarvesterNameAndDate(
+            @Param("foremanId") UUID foremanId,
+            @Param("name") String name,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 }
