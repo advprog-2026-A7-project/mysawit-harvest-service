@@ -76,7 +76,39 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
-        return List.of();
+        if (foremanId == null) {
+            throw new UnauthorizedUserException("Only registered foremen are permitted to access");
+        }
+
+        String name = request.getHarvesterName();
+        LocalDateTime start = request.getStartDate();
+        LocalDateTime end = request.getEndDate();
+
+        List<Harvest> harvestList;
+
+        // User isi name dan tanggal
+        if (isNotBlank(name) && start != null && end != null) {
+            harvestList = harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCaseAndHarvestDateBetween(
+                    foremanId, name, start, end);
+        }
+        // User isi name
+        else if (isNotBlank(name) && (start == null || end == null)) {
+            harvestList = harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCase(
+                    foremanId, name);
+        }
+        // User isi tanggal
+        else if (!isNotBlank(name) && start != null && end != null) {
+            harvestList = harvestRepository.findAllByForemanIdAndHarvestDateBetween(
+                    foremanId, start, end);
+        }
+        // User tidak isi apa2
+        else {
+            harvestList = harvestRepository.findAllByForemanId(foremanId);
+        }
+
+        return harvestList.stream()
+                .map(this::mapResponse)
+                .toList();
     }
 
     private HarvestResponse mapResponse(Harvest harvest) {
@@ -94,5 +126,9 @@ public class HarvestServiceImpl implements HarvestService {
                 .harvestDate(harvest.getHarvestDate())
                 .statusUpdatedDate(harvest.getStatusUpdatedDate())
                 .build();
+    }
+
+    private boolean isNotBlank(String str) {
+        return str != null && !str.isBlank();
     }
 }
