@@ -18,8 +18,8 @@ class ForemanViewHarvestRequestTest {
 
     @Test
     void setHarvesterName() {
-        request.setHarvesterName("Budi Utomo");
-        assertEquals("Budi Utomo", request.getHarvesterName());
+        request.setHarvesterName("Strawberry Shortcake");
+        assertEquals("Strawberry Shortcake", request.getHarvesterName());
     }
 
     @Test

@@ -43,7 +43,7 @@ class HarvestControllerTest {
     void setUp() {
         harvesterId = UUID.randomUUID();
         foremanId = UUID.randomUUID();
-        harvesterName = "Budi Utomo";
+        harvesterName = "Strawberry Shortcake";
 
         validRequest = new LogHarvestRequest();
         validRequest.setPlantationId(UUID.randomUUID());
@@ -56,7 +56,7 @@ class HarvestControllerTest {
         HarvestResponse response = HarvestResponse.builder()
                 .harvesterId(harvesterId)
                 .foremanId(foremanId)
-                .harvesterName("Budi Utomo")
+                .harvesterName("Strawberry Shortcake")
                 .status(HarvestStatus.PENDING)
                 .weight(300.5)
                 .build();
@@ -122,7 +122,7 @@ class HarvestControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].weight").value(300.5))
-                .andExpect(jsonPath("$.[0].harvesterName").value("Budi Utomo"));
+                .andExpect(jsonPath("$.[0].harvesterName").value("Strawberry Shortcake"));
     }
 
     @Test
@@ -153,12 +153,12 @@ class HarvestControllerTest {
 
         mockMvc.perform(get("/harvests")
                         .header("X-Foreman-Id", foremanId)
-                        .param("harvesterName", "Budi")
+                        .param("harvesterName", "Strawberry Shortcake")
                         .param("startDate", "2026-04-01T00:00:00")
                         .param("endDate", "2026-04-06T23:59:59"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].harvesterName").value("Budi Utomo"))
+                .andExpect(jsonPath("$[0].harvesterName").value("Strawberry Shortcake"))
                 .andExpect(jsonPath("$[0].weight").value(500.0));
     }
 
@@ -166,7 +166,7 @@ class HarvestControllerTest {
     void viewAllHistoryForemanNoFilterSuccess() throws Exception {
         HarvestResponse mockResponse = HarvestResponse.builder()
                 .id(UUID.randomUUID())
-                .harvesterName("Budi")
+                .harvesterName("Strawberry Shortcake")
                 .build();
 
         when(harvestService.foremanViewHarvest(any(), any(), eq(foremanId)))

@@ -49,7 +49,7 @@ class HarvestServiceImplTest {
         harvesterId = UUID.randomUUID();
         foremanId = UUID.randomUUID();
         plantationId = UUID.randomUUID();
-        harvesterName = "Budi Utomo";
+        harvesterName = "Strawberry Shortcake";
 
         logRequest = new LogHarvestRequest();
         logRequest.setPlantationId(plantationId);
@@ -143,7 +143,7 @@ class HarvestServiceImplTest {
         Harvest mockHarvest = Harvest.builder()
                 .id(UUID.randomUUID())
                 .harvesterId(harvesterId)
-                .harvesterName("Budi Utomo")
+                .harvesterName("Strawberry Shortcake")
                 .weight(250.75)
                 .status(HarvestStatus.APPROVED)
                 .news("Harvest from blok A")
@@ -158,7 +158,7 @@ class HarvestServiceImplTest {
         assertEquals(250.75, result.getWeight());
         assertEquals(HarvestStatus.APPROVED, result.getStatus());
         assertEquals("Harvest from blok A", result.getNews());
-        assertEquals("Budi Utomo", result.getHarvesterName());
+        assertEquals("Strawberry Shortcake", result.getHarvesterName());
     }
 
     @Test
@@ -194,13 +194,13 @@ class HarvestServiceImplTest {
     @Test
     void foremanViewHarvest_FilterNameAndDate_Success() { // User isi nama dan tanggal
         ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
-        req.setHarvesterName("Budi");
+        req.setHarvesterName("Strawberry Shortcake");
         req.setStartDate(LocalDateTime.now().minusDays(7));
         req.setEndDate(LocalDateTime.now());
 
         when(harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCaseAndHarvestDateBetween(
-                eq(foremanId), eq("Budi"), any(), any()))
-                .thenReturn(List.of(Harvest.builder().harvesterName("Budi Utomo").build()));
+                eq(foremanId), eq("Strawberry Shortcake"), any(), any()))
+                .thenReturn(List.of(Harvest.builder().harvesterName("Strawberry Shortcake").build()));
 
         List<HarvestResponse> responses = harvestService.foremanViewHarvest(req, null, foremanId);
 
@@ -211,17 +211,17 @@ class HarvestServiceImplTest {
     @Test
     void foremanViewHarvest_FilterNameOnly_Success() { // User isi nama
         ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
-        req.setHarvesterName("Budi");
+        req.setHarvesterName("Strawberry Shortcake");
         req.setStartDate(null);
         req.setEndDate(null);
 
-        when(harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Budi")))
-                .thenReturn(List.of(Harvest.builder().harvesterName("Budi Utomo").build()));
+        when(harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Strawberry Shortcake")))
+                .thenReturn(List.of(Harvest.builder().harvesterName("Strawberry Shortcake").build()));
 
         List<HarvestResponse> responses = harvestService.foremanViewHarvest(req, null, foremanId);
 
         assertEquals(1, responses.size());
-        verify(harvestRepository).findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Budi"));
+        verify(harvestRepository).findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Strawberry Shortcake"));
     }
 
     @Test
@@ -293,16 +293,16 @@ class HarvestServiceImplTest {
     @Test
     void foremanViewHarvest_NamePresentButOnlyStartDate() {
         ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
-        req.setHarvesterName("Budi");
+        req.setHarvesterName("Strawberry Shortcake");
         req.setStartDate(LocalDateTime.now());
         req.setEndDate(null);
 
-        when(harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Budi")))
+        when(harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Strawberry Shortcake")))
                 .thenReturn(List.of(new Harvest()));
 
         harvestService.foremanViewHarvest(req, null, foremanId);
 
-        verify(harvestRepository).findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Budi"));
+        verify(harvestRepository).findAllByForemanIdAndHarvesterNameContainingIgnoreCase(eq(foremanId), eq("Strawberry Shortcake"));
     }
 
     @Test
