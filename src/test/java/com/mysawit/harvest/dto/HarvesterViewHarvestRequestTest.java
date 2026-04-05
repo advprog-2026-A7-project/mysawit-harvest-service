@@ -8,13 +8,13 @@ import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ForemanViewHarvestRequestTest {
+class HarvesterViewHarvestRequestTest {
 
-    private ForemanViewHarvestRequest request;
+    private HarvesterViewHarvestRequest request;
 
     @BeforeEach
     void setUp() {
-        request = new ForemanViewHarvestRequest();
+        request = new HarvesterViewHarvestRequest();
     }
 
     @Test

@@ -2,7 +2,7 @@ package com.mysawit.harvest.service;
 
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
-import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
+import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.Harvest;
@@ -40,7 +40,7 @@ class HarvestServiceImplTest {
     private UUID plantationId;
 
     private LogHarvestRequest logRequest;
-    private ForemanViewHarvestRequest viewRequest;
+    private HarvesterViewHarvestRequest viewRequest;
 
     @BeforeEach
     void setUp() {
@@ -53,7 +53,7 @@ class HarvestServiceImplTest {
         logRequest.setWeight(300.5);
         logRequest.setNews("Successful harvest");
 
-        viewRequest = new ForemanViewHarvestRequest();
+        viewRequest = new HarvesterViewHarvestRequest();
     }
 
     // HARVEST LOG ------------------------------------------------------------------
