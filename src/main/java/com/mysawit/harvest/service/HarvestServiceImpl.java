@@ -48,6 +48,7 @@ public class HarvestServiceImpl implements HarvestService {
                 .weight(request.getWeight())
                 .news(request.getNews())
                 .photos(request.getPhotos())
+                .harvestDate(LocalDateTime.now())
                 .status(HarvestStatus.PENDING)
                 .build();
 
@@ -58,16 +59,18 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
-        List<Harvest> harvestList;
-
-        if (harvesterId != null) {
-            harvestList = harvestRepository.findAllByHarvesterIdAndHarvestDateBetween(
-                    harvesterId, request.getStartDate(), request.getEndDate());
-        } else if (foremanId != null) {
-            throw new UnauthorizedUserException("Only registered harvesters are permitted to view their own harvest history.");
-        } else {
+        if (harvesterId == null) {
+            if (foremanId != null) {
+                throw new UnauthorizedUserException("Only registered harvesters are permitted to view their own harvest history.");
+            }
             throw new UnauthorizedUserException("Required identity to view harvest logs.");
         }
+
+        List<Harvest> harvestList = harvestRepository.findAllByHarvesterIdAndDate(
+                harvesterId,
+                request.getStartDate(),
+                request.getEndDate()
+        );
 
         return harvestList.stream()
                 .map(this::mapResponse)
@@ -83,31 +86,12 @@ public class HarvestServiceImpl implements HarvestService {
             throw new UnauthorizedUserException("Required identity to view harvest logs.");
         }
 
-        List<Harvest> harvestList;
-
-        String name = request.getHarvesterName();
-        LocalDateTime start = request.getStartDate();
-        LocalDateTime end = request.getEndDate();
-
-        // User isi name dan tanggal
-        if (isNotBlank(name) && start != null && end != null) {
-            harvestList = harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCaseAndHarvestDateBetween(
-                    foremanId, name, start, end);
-        }
-        // User isi name
-        else if (isNotBlank(name) && (start == null || end == null)) {
-            harvestList = harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCase(
-                    foremanId, name);
-        }
-        // User isi tanggal
-        else if (!isNotBlank(name) && start != null && end != null) {
-            harvestList = harvestRepository.findAllByForemanIdAndHarvestDateBetween(
-                    foremanId, start, end);
-        }
-        // User tidak isi apa2
-        else {
-            harvestList = harvestRepository.findAllByForemanId(foremanId);
-        }
+        List<Harvest> harvestList = harvestRepository.findAllByHarvesterNameAndDate(
+                foremanId,
+                request.getHarvesterName(),
+                request.getStartDate(),
+                request.getEndDate()
+        );
 
         return harvestList.stream()
                 .map(this::mapResponse)
@@ -129,9 +113,5 @@ public class HarvestServiceImpl implements HarvestService {
                 .harvestDate(harvest.getHarvestDate())
                 .statusUpdatedDate(harvest.getStatusUpdatedDate())
                 .build();
-    }
-
-    private boolean isNotBlank(String str) {
-        return str != null && !str.isBlank();
     }
 }

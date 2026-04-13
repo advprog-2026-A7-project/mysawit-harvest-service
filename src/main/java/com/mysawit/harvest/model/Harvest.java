@@ -60,7 +60,7 @@ public class Harvest {
     @Column(name = "rejection_reason")
     private String rejectionReason;
 
-    @CreationTimestamp
+    @NotNull(message = "Harvest date is required")
     @Column(name = "harvest_date", updatable = false)
     private LocalDateTime harvestDate;
 
