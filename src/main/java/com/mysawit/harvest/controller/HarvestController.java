@@ -1,8 +1,9 @@
 package com.mysawit.harvest.controller;
 
+import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
-import com.mysawit.harvest.dto.ViewHarvestRequest;
+import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
 import com.mysawit.harvest.service.HarvestService;
 
 import jakarta.validation.Valid;
@@ -26,24 +27,35 @@ public class HarvestController {
     public ResponseEntity<HarvestResponse> logHarvest(
             @Valid @RequestBody LogHarvestRequest request,
             @RequestHeader("X-Harvester-Id") UUID harvesterId,
+            @RequestHeader("X-Harvester-Name") String harvesterName,
             @RequestHeader("X-Foreman-Id") UUID foremanId
             ) {
-        HarvestResponse response = harvestService.logHarvest(request, harvesterId, foremanId);
+        HarvestResponse response = harvestService.logHarvest(request, harvesterId, foremanId, harvesterName);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/my")
     public ResponseEntity<List<HarvestResponse>> viewMyHistory(
-            @ModelAttribute ViewHarvestRequest request,
+            @ModelAttribute HarvesterViewHarvestRequest request,
             @RequestHeader(value = "X-Harvester-Id", required = false) UUID harvesterId
             ) {
-        return ResponseEntity.ok(harvestService.viewHarvest(request, harvesterId, null));
+        return ResponseEntity.ok(harvestService.harvesterViewHarvest(request, harvesterId, null));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<HarvestResponse>> viewAllHistory(
+            @ModelAttribute ForemanViewHarvestRequest request,
+            @RequestHeader(value = "X-Foreman-Id", required = false) UUID foremanId,
+            @RequestHeader(value = "X-Harvester-Id", required = false) UUID harvesterId
+    ) {
+        List<HarvestResponse> responses = harvestService.foremanViewHarvest(request, harvesterId, foremanId);
+        return ResponseEntity.ok(responses);
     }
 
 
     // TODO: nama endpoint plan
-    // /harvests = buat log harvestny <don>
-    // /harvests/my = harvester liat log dia ndiri <don>
-    // /harvests = mandor liat semua history log harvesterny dan bs filtering
+    // /harvests = buat log harvestny <done>
+    // /harvests/my = harvester liat log dia ndiri <done>
+    // /harvests = mandor liat semua history log harvesterny dan bs filtering <done>
     // /harvests/harvester/{harvesterId} = mandor liat one specific harvester beserta harvestny
 }

@@ -8,7 +8,7 @@ import java.time.LocalTime;
 
 @Getter
 @NoArgsConstructor
-public class ViewHarvestRequest {
+public class HarvesterViewHarvestRequest {
     LocalDateTime startDate;
     LocalDateTime endDate;
 

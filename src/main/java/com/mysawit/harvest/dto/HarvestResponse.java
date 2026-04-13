@@ -15,6 +15,7 @@ public class HarvestResponse {
     private UUID plantationId;
     private UUID harvesterId;
     private UUID foremanId;
+    private String harvesterName;
     private Double weight;
     private String news;
     private List<String> photos;

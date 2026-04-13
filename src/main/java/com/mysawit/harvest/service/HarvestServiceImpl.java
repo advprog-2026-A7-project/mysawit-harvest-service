@@ -1,8 +1,9 @@
 package com.mysawit.harvest.service;
 
+import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
-import com.mysawit.harvest.dto.ViewHarvestRequest;
+import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.Harvest;
@@ -25,7 +26,7 @@ public class HarvestServiceImpl implements HarvestService {
     private final HarvestRepository harvestRepository;
 
     @Override
-    public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId) {
+    public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId, String harvesterName) {
         LocalDateTime dayStart = LocalDate.now().atStartOfDay();
         LocalDateTime dayEnd = LocalDate.now().atTime(LocalTime.MAX);
 
@@ -43,6 +44,7 @@ public class HarvestServiceImpl implements HarvestService {
                 .plantationId(request.getPlantationId())
                 .harvesterId(harvesterId)
                 .foremanId(foremanId)
+                .harvesterName(harvesterName)
                 .weight(request.getWeight())
                 .news(request.getNews())
                 .photos(request.getPhotos())
@@ -55,7 +57,7 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
-    public List<HarvestResponse> viewHarvest(ViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
+    public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
         List<Harvest> harvestList;
 
         if (harvesterId != null) {
@@ -72,12 +74,53 @@ public class HarvestServiceImpl implements HarvestService {
                 .toList();
     }
 
+    @Override
+    public List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
+        if (foremanId == null) {
+            if (harvesterId != null) {
+                throw new UnauthorizedUserException("Only registered foremen are permitted to access.");
+            }
+            throw new UnauthorizedUserException("Required identity to view harvest logs.");
+        }
+
+        List<Harvest> harvestList;
+
+        String name = request.getHarvesterName();
+        LocalDateTime start = request.getStartDate();
+        LocalDateTime end = request.getEndDate();
+
+        // User isi name dan tanggal
+        if (isNotBlank(name) && start != null && end != null) {
+            harvestList = harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCaseAndHarvestDateBetween(
+                    foremanId, name, start, end);
+        }
+        // User isi name
+        else if (isNotBlank(name) && (start == null || end == null)) {
+            harvestList = harvestRepository.findAllByForemanIdAndHarvesterNameContainingIgnoreCase(
+                    foremanId, name);
+        }
+        // User isi tanggal
+        else if (!isNotBlank(name) && start != null && end != null) {
+            harvestList = harvestRepository.findAllByForemanIdAndHarvestDateBetween(
+                    foremanId, start, end);
+        }
+        // User tidak isi apa2
+        else {
+            harvestList = harvestRepository.findAllByForemanId(foremanId);
+        }
+
+        return harvestList.stream()
+                .map(this::mapResponse)
+                .toList();
+    }
+
     private HarvestResponse mapResponse(Harvest harvest) {
         return HarvestResponse.builder()
                 .id(harvest.getId())
                 .plantationId(harvest.getPlantationId())
                 .harvesterId(harvest.getHarvesterId())
                 .foremanId(harvest.getForemanId())
+                .harvesterName(harvest.getHarvesterName())
                 .weight(harvest.getWeight())
                 .news(harvest.getNews())
                 .photos(harvest.getPhotos())
@@ -86,5 +129,9 @@ public class HarvestServiceImpl implements HarvestService {
                 .harvestDate(harvest.getHarvestDate())
                 .statusUpdatedDate(harvest.getStatusUpdatedDate())
                 .build();
+    }
+
+    private boolean isNotBlank(String str) {
+        return str != null && !str.isBlank();
     }
 }
