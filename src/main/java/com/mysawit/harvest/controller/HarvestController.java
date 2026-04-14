@@ -58,4 +58,5 @@ public class HarvestController {
     // /harvests/my = harvester liat log dia ndiri <done>
     // /harvests = mandor liat semua history log harvesterny dan bs filtering <done>
     // /harvests/harvester/{harvesterId} = mandor liat one specific harvester beserta harvestny
+    // /harvests/update/ = mandor change status
 }
