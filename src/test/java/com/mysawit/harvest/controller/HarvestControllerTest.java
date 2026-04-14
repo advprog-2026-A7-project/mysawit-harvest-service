@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
+import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.service.HarvestService;
 import org.junit.jupiter.api.BeforeEach;
@@ -251,7 +252,7 @@ class HarvestControllerTest {
         updateStatusRequest.setStatus(HarvestStatus.APPROVED);
 
         when(harvestService.updateHarvestStatus(any(), eq(foremanId)))
-                .thenThrow(new StatusAlreadyUpdatedException("Status already processed."));
+                .thenThrow(new HarvestStatusAlreadyUpdatedException("Status already processed."));
 
         mockMvc.perform(patch("/harvests/update/")
                         .header("X-Foreman-Id", String.valueOf(foremanId))

@@ -5,6 +5,8 @@ import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
+import com.mysawit.harvest.exception.HarvestLogNotFoundException;
+import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
@@ -286,7 +288,7 @@ class HarvestServiceImplTest {
                         .build()
         ));
 
-        assertThrows(StatusAlreadyUpdatedException.class, () ->
+        assertThrows(HarvestStatusAlreadyUpdatedException.class, () ->
                 harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
 
         verify(harvestRepository, never()).save(any(Harvest.class));
@@ -316,5 +318,18 @@ class HarvestServiceImplTest {
         assertEquals("Bad harvest.", response.getRejectionReason());
 
         verify(harvestRepository).save(any(Harvest.class));
+    }
+
+    @Test
+    void updateHarvestStatus_NotFound() {
+        UUID randomId = UUID.randomUUID();
+        updateStatusRequest.setId(randomId);
+
+        when(harvestRepository.findById(eq(randomId))).thenReturn(java.util.Optional.empty());
+
+        assertThrows(HarvestLogNotFoundException.class, () ->
+                harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
+
+        verify(harvestRepository, never()).save(any());
     }
 }
