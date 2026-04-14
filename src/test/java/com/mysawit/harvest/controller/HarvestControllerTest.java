@@ -3,6 +3,7 @@ package com.mysawit.harvest.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
+import com.mysawit.harvest.dto.UpdateHarvestStatusRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.model.HarvestStatus;
@@ -19,7 +20,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
-import static org.springframework.mock.http.server.reactive.MockServerHttpRequest.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -239,7 +240,7 @@ class HarvestControllerTest {
 
         mockMvc.perform(patch("/harvests/update/")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequest)))
+                        .content(objectMapper.writeValueAsString(updateStatusRequest)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED_ACCESS"));
     }

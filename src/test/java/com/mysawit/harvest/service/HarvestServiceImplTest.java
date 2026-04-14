@@ -4,6 +4,7 @@ import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
+import com.mysawit.harvest.dto.UpdateHarvestStatusRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
 import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;

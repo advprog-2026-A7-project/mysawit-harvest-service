@@ -1,9 +1,6 @@
 package com.mysawit.harvest.service;
 
-import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
-import com.mysawit.harvest.dto.LogHarvestRequest;
-import com.mysawit.harvest.dto.HarvestResponse;
-import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
+import com.mysawit.harvest.dto.*;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.Harvest;
@@ -98,6 +95,11 @@ public class HarvestServiceImpl implements HarvestService {
                 .toList();
     }
 
+    @Override
+    public HarvestResponse updateHarvestStatus(UpdateHarvestStatusRequest request, UUID foremanId) {
+        return null;
+    }
+
     private HarvestResponse mapResponse(Harvest harvest) {
         return HarvestResponse.builder()
                 .id(harvest.getId())
@@ -114,4 +116,5 @@ public class HarvestServiceImpl implements HarvestService {
                 .statusUpdatedDate(harvest.getStatusUpdatedDate())
                 .build();
     }
+
 }
