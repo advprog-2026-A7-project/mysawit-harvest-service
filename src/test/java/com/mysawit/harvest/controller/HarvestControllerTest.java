@@ -5,6 +5,7 @@ import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.dto.UpdateHarvestStatusRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
+import com.mysawit.harvest.exception.HarvestLogNotFoundException;
 import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.service.HarvestService;
@@ -262,5 +263,42 @@ class HarvestControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("STATUS_ALREADY_UPDATED"))
                 .andExpect(jsonPath("$.message").value("Status already processed."));
+    }
+
+    @Test
+    void updateStatusNotFound() throws Exception {
+        UUID harvestId = UUID.randomUUID();
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.APPROVED);
+
+        when(harvestService.updateHarvestStatus(any(), any()))
+                .thenThrow(new HarvestLogNotFoundException("Harvest log not found"));
+
+        mockMvc.perform(patch("/harvests/update")
+                        .header("X-Foreman-Id", foremanId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateStatusRequest)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Harvest log not found"));
+    }
+
+    @Test
+    void updateStatusIllegalArgument() throws Exception {
+        UUID harvestId = UUID.randomUUID();
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.REJECTED);
+        updateStatusRequest.setRejectionReason("");
+
+        when(harvestService.updateHarvestStatus(any(), any()))
+                .thenThrow(new IllegalArgumentException("Rejection reason must be provided"));
+
+        mockMvc.perform(patch("/harvests/update")
+                        .header("X-Foreman-Id", foremanId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateStatusRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_ARGUMENT"))
+                .andExpect(jsonPath("$.message").value("Rejection reason must be provided"));
     }
 }
