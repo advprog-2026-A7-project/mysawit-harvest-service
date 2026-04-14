@@ -1,9 +1,6 @@
 package com.mysawit.harvest.controller;
 
-import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
-import com.mysawit.harvest.dto.LogHarvestRequest;
-import com.mysawit.harvest.dto.HarvestResponse;
-import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
+import com.mysawit.harvest.dto.*;
 import com.mysawit.harvest.service.HarvestService;
 
 import jakarta.validation.Valid;
@@ -50,6 +47,15 @@ public class HarvestController {
     ) {
         List<HarvestResponse> responses = harvestService.foremanViewHarvest(request, harvesterId, foremanId);
         return ResponseEntity.ok(responses);
+    }
+
+    @PatchMapping("/update")
+    public ResponseEntity<HarvestResponse> updateStatus(
+            @Valid @RequestBody UpdateHarvestStatusRequest request,
+            @RequestHeader(value = "X-Foreman-Id", required = false) UUID foremanId
+    ) {
+        HarvestResponse response = harvestService.updateHarvestStatus(request, foremanId);
+        return ResponseEntity.ok(response);
     }
 
 

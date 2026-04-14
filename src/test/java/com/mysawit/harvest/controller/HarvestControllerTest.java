@@ -221,7 +221,7 @@ class HarvestControllerTest {
         when(harvestService.updateHarvestStatus(any(), eq(foremanId)))
                 .thenReturn(response);
 
-        mockMvc.perform(patch("/harvests/update/")
+        mockMvc.perform(patch("/harvests/update")
                         .header("X-Foreman-Id", String.valueOf(foremanId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateStatusRequest)))
@@ -238,7 +238,7 @@ class HarvestControllerTest {
         updateStatusRequest.setId(UUID.randomUUID());
         updateStatusRequest.setStatus(HarvestStatus.REJECTED);
 
-        mockMvc.perform(patch("/harvests/update/")
+        mockMvc.perform(patch("/harvests/update")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateStatusRequest)))
                 .andExpect(status().isForbidden())
@@ -255,7 +255,7 @@ class HarvestControllerTest {
         when(harvestService.updateHarvestStatus(any(), eq(foremanId)))
                 .thenThrow(new HarvestStatusAlreadyUpdatedException("Status already processed."));
 
-        mockMvc.perform(patch("/harvests/update/")
+        mockMvc.perform(patch("/harvests/update")
                         .header("X-Foreman-Id", String.valueOf(foremanId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateStatusRequest)))

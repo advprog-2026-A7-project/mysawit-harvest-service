@@ -2,6 +2,8 @@ package com.mysawit.harvest.service;
 
 import com.mysawit.harvest.dto.*;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
+import com.mysawit.harvest.exception.HarvestLogNotFoundException;
+import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
@@ -97,7 +99,26 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public HarvestResponse updateHarvestStatus(UpdateHarvestStatusRequest request, UUID foremanId) {
-        return null;
+        if (foremanId == null) { throw new UnauthorizedUserException("Required foreman identity."); }
+
+        Harvest harvest = harvestRepository.findById(request.getId())
+                .orElseThrow(() -> new HarvestLogNotFoundException("Harvest log not found with ID: " + request.getId()));
+
+        if (!harvest.getForemanId().equals(foremanId)) { throw new UnauthorizedUserException("You are not authorized to update this log.");}
+
+        if (harvest.getStatus() != HarvestStatus.PENDING) { throw new HarvestStatusAlreadyUpdatedException("Status already processed and cannot be changed."); }
+
+        boolean isRejecting = request.getStatus() == HarvestStatus.REJECTED;
+
+        if (isRejecting && (request.getRejectionReason() == null || request.getRejectionReason().isBlank())) {
+            throw new IllegalArgumentException("Rejection reason must be provided when rejecting a harvest.");
+        }
+
+        harvest.setStatus(request.getStatus());
+        harvest.setRejectionReason(isRejecting ? request.getRejectionReason() : null);
+        harvest.setStatusUpdatedDate(LocalDateTime.now());
+
+        return mapResponse(harvestRepository.save(harvest));
     }
 
     private HarvestResponse mapResponse(Harvest harvest) {
