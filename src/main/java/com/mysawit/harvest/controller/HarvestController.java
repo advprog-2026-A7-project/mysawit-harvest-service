@@ -1,9 +1,6 @@
 package com.mysawit.harvest.controller;
 
-import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
-import com.mysawit.harvest.dto.LogHarvestRequest;
-import com.mysawit.harvest.dto.HarvestResponse;
-import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
+import com.mysawit.harvest.dto.*;
 import com.mysawit.harvest.service.HarvestService;
 
 import jakarta.validation.Valid;
@@ -52,10 +49,20 @@ public class HarvestController {
         return ResponseEntity.ok(responses);
     }
 
+    @PatchMapping("/update")
+    public ResponseEntity<HarvestResponse> updateStatus(
+            @Valid @RequestBody UpdateHarvestStatusRequest request,
+            @RequestHeader(value = "X-Foreman-Id", required = false) UUID foremanId
+    ) {
+        HarvestResponse response = harvestService.updateHarvestStatus(request, foremanId);
+        return ResponseEntity.ok(response);
+    }
+
 
     // TODO: nama endpoint plan
     // /harvests = buat log harvestny <done>
     // /harvests/my = harvester liat log dia ndiri <done>
     // /harvests = mandor liat semua history log harvesterny dan bs filtering <done>
     // /harvests/harvester/{harvesterId} = mandor liat one specific harvester beserta harvestny
+    // /harvests/update/ = mandor change status
 }

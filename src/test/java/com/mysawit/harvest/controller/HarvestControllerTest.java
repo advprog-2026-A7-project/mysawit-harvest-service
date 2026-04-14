@@ -3,7 +3,10 @@ package com.mysawit.harvest.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
+import com.mysawit.harvest.dto.UpdateHarvestStatusRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
+import com.mysawit.harvest.exception.HarvestLogNotFoundException;
+import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.service.HarvestService;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +21,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -38,6 +42,7 @@ class HarvestControllerTest {
     private UUID foremanId;
     private String harvesterName;
     private LogHarvestRequest validRequest;
+    private UpdateHarvestStatusRequest updateStatusRequest;
 
     @BeforeEach
     void setUp() {
@@ -49,6 +54,8 @@ class HarvestControllerTest {
         validRequest.setPlantationId(UUID.randomUUID());
         validRequest.setWeight(300.5);
         validRequest.setNews("Successful harvest");
+
+        updateStatusRequest = new UpdateHarvestStatusRequest();
     }
 
     @Test
@@ -198,5 +205,100 @@ class HarvestControllerTest {
         mockMvc.perform(get("/harvests"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED_ACCESS"));
+    }
+
+    @Test
+    void updateStatusSuccess() throws Exception {
+        UUID harvestId = UUID.randomUUID();
+
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.APPROVED);
+
+        HarvestResponse response = HarvestResponse.builder()
+                .id(harvestId)
+                .status(HarvestStatus.APPROVED)
+                .build();
+
+        when(harvestService.updateHarvestStatus(any(), eq(foremanId)))
+                .thenReturn(response);
+
+        mockMvc.perform(patch("/harvests/update")
+                        .header("X-Foreman-Id", String.valueOf(foremanId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateStatusRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"))
+                .andExpect(jsonPath("$.id").value(harvestId.toString()));
+    }
+
+    @Test
+    void updateStatusForbidden() throws Exception {
+        when(harvestService.updateHarvestStatus(any(), isNull()))
+                .thenThrow(new com.mysawit.harvest.exception.UnauthorizedUserException("Required foreman identity."));
+
+        updateStatusRequest.setId(UUID.randomUUID());
+        updateStatusRequest.setStatus(HarvestStatus.REJECTED);
+
+        mockMvc.perform(patch("/harvests/update")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateStatusRequest)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED_ACCESS"));
+    }
+
+    @Test
+    void updateStatusAlreadyProcessed() throws Exception {
+        UUID harvestId = UUID.randomUUID();
+
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.APPROVED);
+
+        when(harvestService.updateHarvestStatus(any(), eq(foremanId)))
+                .thenThrow(new HarvestStatusAlreadyUpdatedException("Status already processed."));
+
+        mockMvc.perform(patch("/harvests/update")
+                        .header("X-Foreman-Id", String.valueOf(foremanId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateStatusRequest)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("STATUS_ALREADY_UPDATED"))
+                .andExpect(jsonPath("$.message").value("Status already processed."));
+    }
+
+    @Test
+    void updateStatusNotFound() throws Exception {
+        UUID harvestId = UUID.randomUUID();
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.APPROVED);
+
+        when(harvestService.updateHarvestStatus(any(), any()))
+                .thenThrow(new HarvestLogNotFoundException("Harvest log not found"));
+
+        mockMvc.perform(patch("/harvests/update")
+                        .header("X-Foreman-Id", foremanId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateStatusRequest)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Harvest log not found"));
+    }
+
+    @Test
+    void updateStatusIllegalArgument() throws Exception {
+        UUID harvestId = UUID.randomUUID();
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.REJECTED);
+        updateStatusRequest.setRejectionReason("");
+
+        when(harvestService.updateHarvestStatus(any(), any()))
+                .thenThrow(new IllegalArgumentException("Rejection reason must be provided"));
+
+        mockMvc.perform(patch("/harvests/update")
+                        .header("X-Foreman-Id", foremanId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateStatusRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_ARGUMENT"))
+                .andExpect(jsonPath("$.message").value("Rejection reason must be provided"));
     }
 }

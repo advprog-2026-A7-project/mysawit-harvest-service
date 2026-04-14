@@ -4,7 +4,10 @@ import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
 import com.mysawit.harvest.dto.HarvesterViewHarvestRequest;
+import com.mysawit.harvest.dto.UpdateHarvestStatusRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
+import com.mysawit.harvest.exception.HarvestLogNotFoundException;
+import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
@@ -43,6 +46,7 @@ class HarvestServiceImplTest {
 
     private LogHarvestRequest logRequest;
     private HarvesterViewHarvestRequest harvesterViewRequest;
+    private UpdateHarvestStatusRequest updateStatusRequest;
 
     @BeforeEach
     void setUp() {
@@ -57,6 +61,8 @@ class HarvestServiceImplTest {
         logRequest.setNews("Successful harvest");
 
         harvesterViewRequest = new HarvesterViewHarvestRequest();
+
+        updateStatusRequest = new UpdateHarvestStatusRequest();
     }
 
     // HARVEST LOG ------------------------------------------------------------------
@@ -185,7 +191,7 @@ class HarvestServiceImplTest {
     }
 
     @Test
-    void foremanViewHarvest_AsHarvester_ThrowsException() {
+    void foremanViewHarvest_AsHarvester() {
         ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
 
         UnauthorizedUserException exception = assertThrows(UnauthorizedUserException.class, () ->
@@ -196,7 +202,7 @@ class HarvestServiceImplTest {
     }
 
     @Test
-    void foremanViewHarvest_NoIdentity_ThrowsException() {
+    void foremanViewHarvest_NoIdentity() {
         ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
 
         UnauthorizedUserException exception = assertThrows(UnauthorizedUserException.class, () ->
@@ -204,5 +210,157 @@ class HarvestServiceImplTest {
 
         assertEquals("Required identity to view harvest logs.", exception.getMessage());
         verify(harvestRepository, never()).findAllByHarvesterNameAndDate(any(), any(), any(), any());
+    }
+
+    // FOREMAN UPDATE STATUS ------------------------------------------------------------------
+    @Test
+    void updateHarvestStatus_Success() {
+        UUID harvestId = UUID.randomUUID();
+
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.APPROVED);
+
+        when(harvestRepository.findById(eq(harvestId))).thenReturn(java.util.Optional.of(
+                Harvest.builder()
+                        .id(harvestId)
+                        .foremanId(foremanId)
+                        .status(HarvestStatus.PENDING)
+                        .build()
+        ));
+
+        when(harvestRepository.save(any(Harvest.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        HarvestResponse response = harvestService.updateHarvestStatus(updateStatusRequest, foremanId);
+
+        assertNotNull(response);
+        assertEquals(HarvestStatus.APPROVED, response.getStatus());
+        verify(harvestRepository).save(any(Harvest.class));
+    }
+
+    @Test
+    void updateHarvestStatus_AsHarvester() {
+        assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.updateHarvestStatus(updateStatusRequest, null));
+
+        verify(harvestRepository, never()).findById(any());
+        verify(harvestRepository, never()).save(any());
+    }
+
+    @Test
+    void updateHarvestStatus_WrongForeman() {
+        UUID harvestId = UUID.randomUUID();
+
+        updateStatusRequest.setId(harvestId);
+
+        when(harvestRepository.findById(eq(harvestId))).thenReturn(java.util.Optional.of(
+                Harvest.builder()
+                        .id(harvestId)
+                        .foremanId(UUID.randomUUID())
+                        .build()
+        ));
+
+        assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
+
+        verify(harvestRepository, never()).save(any());
+    }
+
+    @Test
+    void updateHarvestStatus_NoIdentity() {
+        assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.updateHarvestStatus(updateStatusRequest, null));
+
+        verify(harvestRepository, never()).findById(any());
+    }
+
+    @Test
+    void updateHarvestStatus_AlreadyProcessed() {
+        UUID harvestId = UUID.randomUUID();
+
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.REJECTED);
+        updateStatusRequest.setRejectionReason("Bad harvest.");
+
+        when(harvestRepository.findById(eq(harvestId))).thenReturn(java.util.Optional.of(
+                Harvest.builder()
+                        .id(harvestId)
+                        .foremanId(foremanId)
+                        .status(HarvestStatus.APPROVED)
+                        .build()
+        ));
+
+        assertThrows(HarvestStatusAlreadyUpdatedException.class, () ->
+                harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
+
+        verify(harvestRepository, never()).save(any(Harvest.class));
+    }
+
+    @Test
+    void updateHarvestStatus_RejectedWithRemarks() {
+        UUID harvestId = UUID.randomUUID();
+
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.REJECTED);
+        updateStatusRequest.setRejectionReason("Bad harvest.");
+
+        Harvest existingHarvest = Harvest.builder()
+                .id(harvestId)
+                .foremanId(foremanId)
+                .status(HarvestStatus.PENDING)
+                .build();
+
+        when(harvestRepository.findById(harvestId)).thenReturn(java.util.Optional.of(existingHarvest));
+        when(harvestRepository.save(any(Harvest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        HarvestResponse response = harvestService.updateHarvestStatus(updateStatusRequest, foremanId);
+
+        assertNotNull(response);
+        assertEquals(HarvestStatus.REJECTED, response.getStatus());
+        assertEquals("Bad harvest.", response.getRejectionReason());
+
+        verify(harvestRepository).save(any(Harvest.class));
+    }
+
+    @Test
+    void updateHarvestStatus_NotFound() {
+        UUID randomId = UUID.randomUUID();
+        updateStatusRequest.setId(randomId);
+
+        when(harvestRepository.findById(eq(randomId))).thenReturn(java.util.Optional.empty());
+
+        assertThrows(HarvestLogNotFoundException.class, () ->
+                harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
+
+        verify(harvestRepository, never()).save(any());
+    }
+
+    @Test
+    void updateHarvestStatus_RejectedWithoutReason() {
+        UUID harvestId = UUID.randomUUID();
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.REJECTED);
+        updateStatusRequest.setRejectionReason(null);
+
+        when(harvestRepository.findById(eq(harvestId))).thenReturn(java.util.Optional.of(
+                Harvest.builder().id(harvestId).foremanId(foremanId).status(HarvestStatus.PENDING).build()
+        ));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
+    }
+
+    @Test
+    void updateHarvestStatus_RejectedWithBlankReason() {
+        UUID harvestId = UUID.randomUUID();
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.REJECTED);
+        updateStatusRequest.setRejectionReason("   ");
+
+        when(harvestRepository.findById(any())).thenReturn(java.util.Optional.of(
+                Harvest.builder().id(harvestId).foremanId(foremanId).status(HarvestStatus.PENDING).build()
+        ));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
     }
 }
