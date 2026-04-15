@@ -98,6 +98,28 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
+    public HarvestResponse getHarvestDetail(UUID id, UUID harvesterId, UUID foremanId) {
+        if (harvesterId == null && foremanId == null) {
+            throw new UnauthorizedUserException("Required identity to view harvest details.");
+        }
+
+        Harvest harvest = harvestRepository.findById(id)
+                .orElseThrow(() -> new HarvestLogNotFoundException("Harvest log not found with ID: " + id));
+
+        if (foremanId != null) {
+            if (!harvest.getForemanId().equals(foremanId)) {
+                throw new UnauthorizedUserException("You are not authorized to view this log (Foreman mismatch).");
+            }
+        } else {
+            if (!harvest.getHarvesterId().equals(harvesterId)) {
+                throw new UnauthorizedUserException("You are not authorized to view this log (Harvester mismatch).");
+            }
+        }
+
+        return mapResponse(harvest);
+    }
+
+    @Override
     public HarvestResponse updateHarvestStatus(UpdateHarvestStatusRequest request, UUID foremanId) {
         if (foremanId == null) { throw new UnauthorizedUserException("Required foreman identity."); }
 
