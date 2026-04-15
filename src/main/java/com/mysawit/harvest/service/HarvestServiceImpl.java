@@ -98,6 +98,11 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
+    public HarvestResponse getHarvestDetail(UUID id, UUID harvesterId, UUID foremanId) {
+        return null;
+    }
+
+    @Override
     public HarvestResponse updateHarvestStatus(UpdateHarvestStatusRequest request, UUID foremanId) {
         if (foremanId == null) { throw new UnauthorizedUserException("Required foreman identity."); }
 

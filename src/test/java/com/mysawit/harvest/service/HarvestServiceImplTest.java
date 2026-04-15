@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -396,5 +397,71 @@ class HarvestServiceImplTest {
         when(harvestRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         assertDoesNotThrow(() -> harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
+    }
+
+    // GENERAL VIEW ------------------------------------------------------------------
+    @Test
+    void getHarvestDetail_SuccessAsForeman() {
+        UUID harvestId = UUID.randomUUID();
+        Harvest mockHarvest = Harvest.builder()
+                .id(harvestId)
+                .harvesterId(UUID.randomUUID())
+                .build();
+
+        when(harvestRepository.findById(harvestId)).thenReturn(Optional.of(mockHarvest));
+
+        HarvestResponse response = harvestService.getHarvestDetail(harvestId, null, foremanId);
+
+        assertNotNull(response);
+        assertEquals(harvestId, response.getId());
+        verify(harvestRepository).findById(harvestId);
+    }
+
+    @Test
+    void getHarvestDetail_SuccessAsOwner() {
+        UUID harvestId = UUID.randomUUID();
+        UUID myId = UUID.randomUUID();
+        Harvest mockHarvest = Harvest.builder()
+                .id(harvestId)
+                .harvesterId(myId)
+                .build();
+
+        when(harvestRepository.findById(harvestId)).thenReturn(Optional.of(mockHarvest));
+
+        HarvestResponse response = harvestService.getHarvestDetail(harvestId, myId, null);
+
+        assertNotNull(response);
+        assertEquals(harvestId, response.getId());
+    }
+
+    @Test
+    void getHarvestDetail_ForbiddenForOtherHarvester() {
+        UUID harvestId = UUID.randomUUID();
+        UUID myId = UUID.randomUUID();
+        UUID otherId = UUID.randomUUID();
+        Harvest mockHarvest = Harvest.builder()
+                .id(harvestId)
+                .harvesterId(otherId)
+                .build();
+
+        when(harvestRepository.findById(harvestId)).thenReturn(Optional.of(mockHarvest));
+
+        assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.getHarvestDetail(harvestId, myId, null));
+    }
+
+    @Test
+    void getHarvestDetail_NoIdentity_ThrowsException() {
+        assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.getHarvestDetail(UUID.randomUUID(), null, null));
+    }
+
+    @Test
+    void getHarvestDetail_NotFound_ThrowsException() {
+        UUID randomId = UUID.randomUUID();
+        when(harvestRepository.findById(randomId)).thenReturn(Optional.empty());
+
+        assertThrows(HarvestLogNotFoundException.class, () ->
+                harvestService.getHarvestDetail(randomId, null, foremanId));
     }
 }

@@ -12,5 +12,7 @@ public interface HarvestService {
 
     List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID harvesterId, UUID foremanId);
 
+    HarvestResponse getHarvestDetail(UUID id, UUID harvesterId, UUID foremanId);
+
     HarvestResponse updateHarvestStatus(UpdateHarvestStatusRequest request, UUID foremanId);
 }
