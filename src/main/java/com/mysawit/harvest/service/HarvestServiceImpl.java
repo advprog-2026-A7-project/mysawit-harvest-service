@@ -114,6 +114,10 @@ public class HarvestServiceImpl implements HarvestService {
             throw new IllegalArgumentException("Rejection reason must be provided when rejecting a harvest.");
         }
 
+        if (request.getStatus() == HarvestStatus.APPROVED && request.getRejectionReason() != null && !request.getRejectionReason().isBlank()) {
+            throw new IllegalArgumentException("Rejection reason cannot be provided for an approved harvest.");
+        }
+
         harvest.setStatus(request.getStatus());
         harvest.setRejectionReason(isRejecting ? request.getRejectionReason() : null);
         harvest.setStatusUpdatedDate(LocalDateTime.now());
@@ -137,5 +141,4 @@ public class HarvestServiceImpl implements HarvestService {
                 .statusUpdatedDate(harvest.getStatusUpdatedDate())
                 .build();
     }
-
 }
