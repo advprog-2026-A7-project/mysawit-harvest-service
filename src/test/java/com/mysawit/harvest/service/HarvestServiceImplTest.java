@@ -363,4 +363,38 @@ class HarvestServiceImplTest {
         assertThrows(IllegalArgumentException.class, () ->
                 harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
     }
+
+    @Test
+    void updateHarvestStatus_ApprovedWithReasonNull() {
+        UUID harvestId = UUID.randomUUID();
+        updateStatusRequest.setId(harvestId);
+        updateStatusRequest.setStatus(HarvestStatus.APPROVED);
+        updateStatusRequest.setRejectionReason("Test");
+
+        Harvest mockHarvest = Harvest.builder()
+                .id(harvestId)
+                .foremanId(foremanId)
+                .status(HarvestStatus.PENDING)
+                .build();
+
+        when(harvestRepository.findById(harvestId)).thenReturn(java.util.Optional.of(mockHarvest));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
+
+        verify(harvestRepository, never()).save(any());
+    }
+
+    @Test
+    void updateStatus_ApprovedWithBlankReason() {
+        updateStatusRequest.setStatus(HarvestStatus.APPROVED);
+        updateStatusRequest.setRejectionReason("   ");
+
+        when(harvestRepository.findById(any())).thenReturn(java.util.Optional.of(
+                Harvest.builder().foremanId(foremanId).status(HarvestStatus.PENDING).build()
+        ));
+        when(harvestRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        assertDoesNotThrow(() -> harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
+    }
 }
