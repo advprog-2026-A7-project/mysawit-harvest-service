@@ -11,6 +11,7 @@ import com.mysawit.harvest.repository.HarvestRepository;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -23,6 +24,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class HarvestServiceImpl implements HarvestService {
     private final HarvestRepository harvestRepository;
+    private final RabbitTemplate rabbitTemplate;
 
     @Override
     public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId, String harvesterName) {

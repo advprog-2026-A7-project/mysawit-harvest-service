@@ -1,5 +1,6 @@
 package com.mysawit.harvest.service;
 
+import com.mysawit.harvest.config.RabbitMQConfig;
 import com.mysawit.harvest.dto.ForemanViewHarvestRequest;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.dto.HarvestResponse;
@@ -20,9 +21,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,12 +40,16 @@ class HarvestServiceImplTest {
     @Mock
     private HarvestRepository harvestRepository;
 
+    @Mock
+    private RabbitTemplate rabbitTemplate;
+
     @InjectMocks
     private HarvestServiceImpl harvestService;
 
     private UUID harvesterId;
     private UUID foremanId;
     private UUID plantationId;
+    private UUID harvestId;
     private String harvesterName;
 
     private LogHarvestRequest logRequest;
@@ -53,6 +61,7 @@ class HarvestServiceImplTest {
         harvesterId = UUID.randomUUID();
         foremanId = UUID.randomUUID();
         plantationId = UUID.randomUUID();
+        harvestId = UUID.randomUUID();
         harvesterName = "Strawberry Shortcake";
 
         logRequest = new LogHarvestRequest();
@@ -396,5 +405,47 @@ class HarvestServiceImplTest {
         when(harvestRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         assertDoesNotThrow(() -> harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
+    }
+
+    @Test
+    void updateHarvestStatus_Approved_ShouldSendRabbitMQMessage() {
+        UpdateHarvestStatusRequest request = new UpdateHarvestStatusRequest();
+        request.setId(harvestId);
+        request.setStatus(HarvestStatus.APPROVED);
+
+        Harvest mockHarvest = Harvest.builder()
+                .id(harvestId)
+                .foremanId(foremanId)
+                .status(HarvestStatus.PENDING)
+                .weight(777.0)
+                .build();
+
+        when(harvestRepository.findById(harvestId)).thenReturn(Optional.of(mockHarvest));
+        when(harvestRepository.save(any(Harvest.class))).thenReturn(mockHarvest);
+
+        harvestService.updateHarvestStatus(request, foremanId);
+
+        verify(rabbitTemplate, times(1)).convertAndSend(eq(RabbitMQConfig.PAYROLL_QUEUE), any(Map.class));
+    }
+
+    @Test
+    void updateHarvestStatus_Rejected_ShouldNotSendRabbitMQMessage() {
+        UpdateHarvestStatusRequest request = new UpdateHarvestStatusRequest();
+        request.setId(harvestId);
+        request.setStatus(HarvestStatus.REJECTED);
+        request.setRejectionReason("Bad harvest");
+
+        Harvest mockHarvest = Harvest.builder()
+                .id(harvestId)
+                .foremanId(foremanId)
+                .status(HarvestStatus.PENDING)
+                .build();
+
+        when(harvestRepository.findById(harvestId)).thenReturn(Optional.of(mockHarvest));
+        when(harvestRepository.save(any(Harvest.class))).thenReturn(mockHarvest);
+
+        harvestService.updateHarvestStatus(request, foremanId);
+
+        verify(rabbitTemplate, never()).convertAndSend(anyString(), any(Map.class));
     }
 }
