@@ -5,9 +5,8 @@ COPY . .
 RUN gradle --no-daemon clean build -x test
 
 # ---- Run stage ----
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /home/gradle/project/build/libs/*.jar app.jar
+COPY build/libs/*.jar app.jar
 EXPOSE 8083
-ENV JAVA_OPTS=""
-ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar /app/app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
