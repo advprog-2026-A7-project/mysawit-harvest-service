@@ -49,6 +49,17 @@ public class HarvestController {
         return ResponseEntity.ok(responses);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<HarvestResponse> getHarvestDetail(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-Harvester-Id", required = false) UUID harvesterId,
+            @RequestHeader(value = "X-Foreman-Id", required = false) UUID foremanId
+    ) {
+
+        HarvestResponse response = harvestService.getHarvestDetail(id, harvesterId, foremanId);
+        return ResponseEntity.ok(response);
+    }
+
     @PatchMapping("/update")
     public ResponseEntity<HarvestResponse> updateStatus(
             @Valid @RequestBody UpdateHarvestStatusRequest request,
@@ -57,12 +68,4 @@ public class HarvestController {
         HarvestResponse response = harvestService.updateHarvestStatus(request, foremanId);
         return ResponseEntity.ok(response);
     }
-
-
-    // TODO: nama endpoint plan
-    // /harvests = buat log harvestny <done>
-    // /harvests/my = harvester liat log dia ndiri <done>
-    // /harvests = mandor liat semua history log harvesterny dan bs filtering <done>
-    // /harvests/harvester/{harvesterId} = mandor liat one specific harvester beserta harvestny
-    // /harvests/update/ = mandor change status
 }
