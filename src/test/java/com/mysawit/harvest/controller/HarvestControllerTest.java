@@ -7,6 +7,7 @@ import com.mysawit.harvest.dto.UpdateHarvestStatusRequest;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
 import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
+import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.service.HarvestService;
 import org.junit.jupiter.api.BeforeEach;
@@ -300,5 +301,49 @@ class HarvestControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("INVALID_ARGUMENT"))
                 .andExpect(jsonPath("$.message").value("Rejection reason must be provided"));
+    }
+
+    @Test
+    void getDetail_Success() throws Exception {
+        UUID harvestId = UUID.randomUUID();
+        HarvestResponse response = HarvestResponse.builder()
+                .id(harvestId)
+                .harvesterName("Strawberry Shortcake")
+                .build();
+
+        when(harvestService.getHarvestDetail(eq(harvestId), any(), any()))
+                .thenReturn(response);
+
+        mockMvc.perform(get("/harvests/" + harvestId)
+                        .header("X-Foreman-Id", foremanId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(harvestId.toString()))
+                .andExpect(jsonPath("$.harvesterName").value("Strawberry Shortcake"));
+    }
+
+    @Test
+    void getDetail_Unauthorized() throws Exception {
+        UUID harvestId = UUID.randomUUID();
+
+        when(harvestService.getHarvestDetail(any(), any(), any()))
+                .thenThrow(new UnauthorizedUserException("You are not authorized"));
+
+        mockMvc.perform(get("/harvests/" + harvestId)
+                        .header("X-Harvester-Id", UUID.randomUUID()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED_ACCESS"));
+    }
+
+    @Test
+    void getDetail_NotFound() throws Exception {
+        UUID harvestId = UUID.randomUUID();
+
+        when(harvestService.getHarvestDetail(any(), any(), any()))
+                .thenThrow(new HarvestLogNotFoundException("Not found"));
+
+        mockMvc.perform(get("/harvests/" + harvestId)
+                        .header("X-Foreman-Id", foremanId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"));
     }
 }
