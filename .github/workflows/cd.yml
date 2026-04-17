@@ -38,33 +38,29 @@ jobs:
       - name: Build and Run Container
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USER }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          script: |
-            cd ~/mysawit-harvest
-            
-            if ! command -v docker &> /dev/null; then
-              sudo apt-get update && sudo apt-get install -y docker.io
-            fi
-
-            sudo docker stop harvest-service || true
-            sudo docker rm harvest-service || true
-
-            sudo docker build -t mysawit-harvest .
-
-            sudo docker run -d \
-              --name harvest-service \
-              -p ${{ vars.HARVEST_HOST_PORT || 8083 }}:8083 \
-              -e SPRING_DATASOURCE_URL='${{ secrets.SPRING_DATASOURCE_URL }}' \
-              -e SPRING_DATASOURCE_USERNAME='${{ secrets.SPRING_DATASOURCE_USERNAME }}' \
-              -e SPRING_DATASOURCE_PASSWORD='${{ secrets.SPRING_DATASOURCE_PASSWORD }}' \
-              -e SPRING_RABBITMQ_HOST='${{ vars.SPRING_RABBITMQ_HOST }}' \
-              -e RABBITMQ_USERNAME='${{ secrets.RABBITMQ_USERNAME }}' \
-              -e RABBITMQ_PASSWORD='${{ secrets.RABBITMQ_PASSWORD }}' \
-              -e CORS_ORIGINS='${{ secrets.CORS_ORIGINS }}' \
-              --restart unless-stopped \
-              mysawit-harvest
+            host: ${{ secrets.STAGING_HOST }}
+            username: ${{ secrets.STAGING_USER }}
+            key: ${{ secrets.STAGING_SSH_KEY }}
+            script: |
+              cd ~/mysawit-harvest
+              
+              sudo docker stop harvest-service || true
+              sudo docker rm harvest-service || true
+              
+              sudo docker build -t mysawit-harvest .
+              
+              sudo docker run -d \
+                --name harvest-service \
+                --network host \
+                -e SPRING_DATASOURCE_URL='${{ secrets.SPRING_DATASOURCE_URL }}' \
+                -e SPRING_DATASOURCE_USERNAME='${{ secrets.SPRING_DATASOURCE_USERNAME }}' \
+                -e SPRING_DATASOURCE_PASSWORD='${{ secrets.SPRING_DATASOURCE_PASSWORD }}' \
+                -e SPRING_RABBITMQ_HOST='${{ vars.SPRING_RABBITMQ_HOST }}' \
+                -e RABBITMQ_USERNAME='${{ secrets.RABBITMQ_USERNAME }}' \
+                -e RABBITMQ_PASSWORD='${{ secrets.RABBITMQ_PASSWORD }}' \
+                -e CORS_ORIGINS='${{ secrets.CORS_ORIGINS }}' \
+                --restart unless-stopped \
+                mysawit-harvest
 
       - name: Verify Health
         uses: appleboy/ssh-action@master
