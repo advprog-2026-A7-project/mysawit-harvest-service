@@ -1,5 +1,6 @@
 package com.mysawit.harvest.service;
 
+import com.mysawit.harvest.config.RabbitMQConfig;
 import com.mysawit.harvest.dto.*;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
@@ -11,18 +12,21 @@ import com.mysawit.harvest.repository.HarvestRepository;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class HarvestServiceImpl implements HarvestService {
     private final HarvestRepository harvestRepository;
+    private final RabbitTemplate rabbitTemplate;
 
     @Override
     public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId, String harvesterName) {
@@ -126,17 +130,22 @@ public class HarvestServiceImpl implements HarvestService {
         Harvest harvest = harvestRepository.findById(request.getId())
                 .orElseThrow(() -> new HarvestLogNotFoundException("Harvest log not found with ID: " + request.getId()));
 
-        if (!harvest.getForemanId().equals(foremanId)) { throw new UnauthorizedUserException("You are not authorized to update this log.");}
+        if (!harvest.getForemanId().equals(foremanId)) {
+            throw new UnauthorizedUserException("You are not authorized to update this log.");
+        }
 
-        if (harvest.getStatus() != HarvestStatus.PENDING) { throw new HarvestStatusAlreadyUpdatedException("Status already processed and cannot be changed."); }
+        if (harvest.getStatus() != HarvestStatus.PENDING) {
+            throw new HarvestStatusAlreadyUpdatedException("Status already processed and cannot be changed.");
+        }
 
         boolean isRejecting = request.getStatus() == HarvestStatus.REJECTED;
+        boolean isApproving = request.getStatus() == HarvestStatus.APPROVED;
 
         if (isRejecting && (request.getRejectionReason() == null || request.getRejectionReason().isBlank())) {
             throw new IllegalArgumentException("Rejection reason must be provided when rejecting a harvest.");
         }
 
-        if (request.getStatus() == HarvestStatus.APPROVED && request.getRejectionReason() != null && !request.getRejectionReason().isBlank()) {
+        if (isApproving && request.getRejectionReason() != null && !request.getRejectionReason().isBlank()) {
             throw new IllegalArgumentException("Rejection reason cannot be provided for an approved harvest.");
         }
 
@@ -144,7 +153,13 @@ public class HarvestServiceImpl implements HarvestService {
         harvest.setRejectionReason(isRejecting ? request.getRejectionReason() : null);
         harvest.setStatusUpdatedDate(LocalDateTime.now());
 
-        return mapResponse(harvestRepository.save(harvest));
+        Harvest savedHarvest = harvestRepository.save(harvest);
+
+        if (isApproving) {
+            sendToPayrollQueue(savedHarvest);
+        }
+
+        return mapResponse(savedHarvest);
     }
 
     private HarvestResponse mapResponse(Harvest harvest) {
@@ -162,5 +177,15 @@ public class HarvestServiceImpl implements HarvestService {
                 .harvestDate(harvest.getHarvestDate())
                 .statusUpdatedDate(harvest.getStatusUpdatedDate())
                 .build();
+    }
+
+    private void sendToPayrollQueue(Harvest harvest) {
+        Map<String, Object> payrollInfo = Map.of(
+                "harvestId", harvest.getId(),
+                "harvesterId", harvest.getHarvesterId(),
+                "weight", harvest.getWeight(),
+                "status", "APPROVED"
+        );
+        rabbitTemplate.convertAndSend(RabbitMQConfig.PAYROLL_QUEUE, payrollInfo);
     }
 }
