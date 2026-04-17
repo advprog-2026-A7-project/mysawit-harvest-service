@@ -1,14 +1,18 @@
 package com.mysawit.harvest.service;
 
-import com.mysawit.harvest.dto.HarvestRequest;
-import com.mysawit.harvest.dto.HarvestResponse;
+import com.mysawit.harvest.dto.*;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface HarvestService {
-    // HarvestLogServiceImpl
-    HarvestResponse logHarvest(HarvestRequest request, UUID harvesterId, UUID foremanId);
+    HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId, String harvesterName);
 
-    // TODO: HarvestListServiceImpl == untuk show list of harvest dari buruhnya
-    // TODO: HarvestStatusServiceImpl == untuk mandor update status log harvest buruh jadi approve / reject
+    List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId, UUID foremanId);
+
+    List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID harvesterId, UUID foremanId);
+
+    HarvestResponse getHarvestDetail(UUID id, UUID harvesterId, UUID foremanId);
+
+    HarvestResponse updateHarvestStatus(UpdateHarvestStatusRequest request, UUID foremanId);
 }

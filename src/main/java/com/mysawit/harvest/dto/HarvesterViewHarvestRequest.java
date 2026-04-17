@@ -1,0 +1,26 @@
+package com.mysawit.harvest.dto;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
+@Getter
+@NoArgsConstructor
+public class HarvesterViewHarvestRequest {
+    LocalDateTime startDate;
+    LocalDateTime endDate;
+
+    public void setStartDate(LocalDateTime start) {
+        if (start != null) {
+            this.startDate = start.with(LocalTime.MIN);
+        }
+    }
+
+    public void setEndDate(LocalDateTime end) {
+        if (end != null) {
+            this.endDate = end.with(LocalTime.MAX);
+        }
+    }
+}

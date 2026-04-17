@@ -35,10 +35,14 @@ public class Harvest {
     @Column(name = "foreman_id")
     private UUID foremanId;
 
+    @NotNull(message = "Harvester name is required")
+    @Column(name = "harvester_name", nullable = false)
+    private String harvesterName;
+
     @NotNull(message = "Weight is required")
     @Positive(message = "Weight must be positive")
     @Column(nullable = false)
-    private Double weight; // in KG
+    private Double weight; // KG
 
     @NotNull(message = "News is required")
     @Column(columnDefinition = "TEXT", nullable = false)
@@ -56,7 +60,7 @@ public class Harvest {
     @Column(name = "rejection_reason")
     private String rejectionReason;
 
-    @CreationTimestamp
+    @NotNull(message = "Harvest date is required")
     @Column(name = "harvest_date", updatable = false)
     private LocalDateTime harvestDate;
 
