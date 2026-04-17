@@ -1,4 +1,4 @@
-name: CD - Deploy Harvest to EC2
+name: CD
 
 on:
   push:
