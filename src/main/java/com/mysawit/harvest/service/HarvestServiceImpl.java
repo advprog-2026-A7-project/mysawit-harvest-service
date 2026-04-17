@@ -30,6 +30,10 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId, String harvesterName) {
+        if (harvesterId == null) {
+            throw new UnauthorizedUserException("Harvester identity is required.");
+        }
+
         LocalDateTime dayStart = LocalDate.now().atStartOfDay();
         LocalDateTime dayEnd = LocalDate.now().atTime(LocalTime.MAX);
 

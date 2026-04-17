@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -21,14 +22,20 @@ public class HarvestController {
     private final HarvestService harvestService;
 
     @PostMapping
-    public ResponseEntity<HarvestResponse> logHarvest(
+    public ResponseEntity<Map<String, Object>> logHarvest(
             @Valid @RequestBody LogHarvestRequest request,
             @RequestHeader("X-Harvester-Id") UUID harvesterId,
             @RequestHeader("X-Harvester-Name") String harvesterName,
             @RequestHeader("X-Foreman-Id") UUID foremanId
-            ) {
+    ) {
         HarvestResponse response = harvestService.logHarvest(request, harvesterId, foremanId, harvesterName);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Harvest successfully logged",
+                "id", response.getId()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseBody);
     }
 
     @GetMapping("/my")

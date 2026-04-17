@@ -112,6 +112,15 @@ class HarvestServiceImplTest {
         verify(harvestRepository, never()).save(any());
     }
 
+    @Test
+    void logHarvest_MissingHarvesterId_ThrowsException() {
+        assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.logHarvest(logRequest, null, foremanId, harvesterName));
+
+        verify(harvestRepository, never()).existsHarvestByHarvesterIdAndHarvestDateBetween(any(), any(), any());
+        verify(harvestRepository, never()).save(any());
+    }
+
     // HARVESTER VIEW ------------------------------------------------------------------
     @Test
     void harvesterViewHarvest_FilterByHarvesterId() {

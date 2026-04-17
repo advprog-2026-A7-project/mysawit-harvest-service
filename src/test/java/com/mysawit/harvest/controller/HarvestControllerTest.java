@@ -59,17 +59,18 @@ class HarvestControllerTest {
         updateStatusRequest = new UpdateHarvestStatusRequest();
     }
 
+    // HARVEST LOG ------------------------------------------------------------------
     @Test
     void logHarvestSuccess() throws Exception {
+        UUID randomId = UUID.randomUUID();
         HarvestResponse response = HarvestResponse.builder()
+                .id(randomId)
                 .harvesterId(harvesterId)
                 .foremanId(foremanId)
-                .harvesterName("Strawberry Shortcake")
                 .status(HarvestStatus.PENDING)
-                .weight(300.5)
                 .build();
 
-        when(harvestService.logHarvest(any(LogHarvestRequest.class), any(UUID.class), any(UUID.class), eq(harvesterName)))
+        when(harvestService.logHarvest(any(LogHarvestRequest.class), any(UUID.class), any(UUID.class), anyString()))
                 .thenReturn(response);
 
         mockMvc.perform(post("/harvests")
@@ -79,13 +80,15 @@ class HarvestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.message").value("Harvest successfully logged"))
+                .andExpect(jsonPath("$.id").value(randomId.toString()));
     }
 
     @Test
     void alreadyLogged() throws Exception {
+        String errorMessage = "Already logged today";
         when(harvestService.logHarvest(any(), any(), any(), any()))
-                .thenThrow(new AlreadyLoggedHarvestTodayException("Already logged today"));
+                .thenThrow(new AlreadyLoggedHarvestTodayException(errorMessage));
 
         mockMvc.perform(post("/harvests")
                         .header("X-Harvester-Id", harvesterId)
@@ -94,7 +97,7 @@ class HarvestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("ALREADY_LOGGED_TODAY"));
+                .andExpect(jsonPath("$.message").value(errorMessage));
     }
 
     @Test
