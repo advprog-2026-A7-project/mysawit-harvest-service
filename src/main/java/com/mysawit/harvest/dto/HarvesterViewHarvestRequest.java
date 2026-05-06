@@ -9,8 +9,8 @@ import java.time.LocalTime;
 @Getter
 @NoArgsConstructor
 public class HarvesterViewHarvestRequest {
-    LocalDateTime startDate;
-    LocalDateTime endDate;
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
 
     public void setStartDate(LocalDateTime start) {
         if (start != null) {
