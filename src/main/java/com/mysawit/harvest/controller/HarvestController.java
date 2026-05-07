@@ -26,7 +26,7 @@ public class HarvestController {
             @Valid @RequestBody LogHarvestRequest request,
             @RequestHeader("X-Harvester-Id") UUID harvesterId,
             @RequestHeader("X-Harvester-Name") String harvesterName,
-            @RequestHeader("X-Foreman-Id") UUID foremanId
+            @RequestHeader(value = "X-Foreman-Id", required = false) UUID foremanId
     ) {
         HarvestResponse response = harvestService.logHarvest(request, harvesterId, foremanId, harvesterName);
 

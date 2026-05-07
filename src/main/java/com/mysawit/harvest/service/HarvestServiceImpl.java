@@ -188,7 +188,7 @@ public class HarvestServiceImpl implements HarvestService {
                 "harvestId", harvest.getId(),
                 "harvesterId", harvest.getHarvesterId(),
                 "weight", harvest.getWeight(),
-                "status", "APPROVED"
+                "status", harvest.getStatus().name()
         );
         rabbitTemplate.convertAndSend(RabbitMQConfig.PAYROLL_QUEUE, payrollInfo);
     }
