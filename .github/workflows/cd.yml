@@ -55,9 +55,10 @@ jobs:
                 -e SPRING_DATASOURCE_URL='${{ secrets.SPRING_DATASOURCE_URL }}' \
                 -e SPRING_DATASOURCE_USERNAME='${{ secrets.SPRING_DATASOURCE_USERNAME }}' \
                 -e SPRING_DATASOURCE_PASSWORD='${{ secrets.SPRING_DATASOURCE_PASSWORD }}' \
-                -e SPRING_RABBITMQ_HOST='${{ vars.SPRING_RABBITMQ_HOST }}' \
+                -e RABBITMQ_HOST='${{ secrets.RABBITMQ_HOST }}' \
                 -e RABBITMQ_USERNAME='${{ secrets.RABBITMQ_USERNAME }}' \
                 -e RABBITMQ_PASSWORD='${{ secrets.RABBITMQ_PASSWORD }}' \
+                -e RABBITMQ_VHOST='${{ secrets.RABBITMQ_VHOST }}' \
                 -e CORS_ORIGINS='${{ secrets.CORS_ORIGINS }}' \
                 --restart unless-stopped \
                 mysawit-harvest
