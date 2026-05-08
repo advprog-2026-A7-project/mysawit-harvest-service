@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.UUID;
 
 public interface HarvestService {
-    HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId, String harvesterName);
+    HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId);
 
-    List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId, UUID foremanId);
+    List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId);
 
-    List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID harvesterId, UUID foremanId);
+    List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID foremanId);
 
     HarvestResponse getHarvestDetail(UUID id, UUID harvesterId, UUID foremanId);
 

@@ -1,5 +1,6 @@
 package com.mysawit.harvest.service;
 
+import com.mysawit.harvest.client.IdentityClient;
 import com.mysawit.harvest.config.RabbitMQConfig;
 import com.mysawit.harvest.dto.*;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
@@ -27,12 +28,12 @@ import java.util.UUID;
 public class HarvestServiceImpl implements HarvestService {
     private final HarvestRepository harvestRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final IdentityClient identityClient;
 
     @Override
-    public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId, String harvesterName) {
-        if (harvesterId == null) {
-            throw new UnauthorizedUserException("Harvester identity is required.");
-        }
+    public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId) {
+        IdentityUserResponse harvester = identityClient.getUserById(harvesterId);
+        UUID assignedForemanId = identityClient.getAssignedForemanId(harvesterId);
 
         LocalDateTime dayStart = LocalDate.now().atStartOfDay();
         LocalDateTime dayEnd = LocalDate.now().atTime(LocalTime.MAX);
@@ -50,8 +51,8 @@ public class HarvestServiceImpl implements HarvestService {
         Harvest harvest = Harvest.builder()
                 .plantationId(request.getPlantationId())
                 .harvesterId(harvesterId)
-                .foremanId(foremanId)
-                .harvesterName(harvesterName)
+                .foremanId(assignedForemanId)
+                .harvesterName(harvester.getName())
                 .weight(request.getWeight())
                 .news(request.getNews())
                 .photos(request.getPhotos())
@@ -65,16 +66,10 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
-    public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
-        if (harvesterId == null) {
-            if (foremanId != null) {
-                throw new UnauthorizedUserException("Only registered harvesters are permitted to view their own harvest history.");
-            }
-            throw new UnauthorizedUserException("Required identity to view harvest logs.");
-        }
-
-        List<Harvest> harvestList = harvestRepository.findAllByHarvesterIdAndDate(
+    public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId) {
+        List<Harvest> harvestList = harvestRepository.findAllByHarvesterIdAndDateAndStatus(
                 harvesterId,
+                request.getStatus(),
                 request.getStartDate(),
                 request.getEndDate()
         );
@@ -85,14 +80,7 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
-    public List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
-        if (foremanId == null) {
-            if (harvesterId != null) {
-                throw new UnauthorizedUserException("Only registered foremen are permitted to access.");
-            }
-            throw new UnauthorizedUserException("Required identity to view harvest logs.");
-        }
-
+    public List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID foremanId) {
         List<Harvest> harvestList = harvestRepository.findAllByHarvesterNameAndDate(
                 foremanId,
                 request.getHarvesterName(),
@@ -107,10 +95,6 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public HarvestResponse getHarvestDetail(UUID id, UUID harvesterId, UUID foremanId) {
-        if (harvesterId == null && foremanId == null) {
-            throw new UnauthorizedUserException("Required identity to view harvest details.");
-        }
-
         Harvest harvest = harvestRepository.findById(id)
                 .orElseThrow(() -> new HarvestLogNotFoundException("Harvest log not found with ID: " + id));
 
@@ -129,8 +113,6 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public HarvestResponse updateHarvestStatus(UpdateHarvestStatusRequest request, UUID foremanId) {
-        if (foremanId == null) { throw new UnauthorizedUserException("Required foreman identity."); }
-
         Harvest harvest = harvestRepository.findById(request.getId())
                 .orElseThrow(() -> new HarvestLogNotFoundException("Harvest log not found with ID: " + request.getId()));
 
@@ -188,7 +170,7 @@ public class HarvestServiceImpl implements HarvestService {
                 "harvestId", harvest.getId(),
                 "harvesterId", harvest.getHarvesterId(),
                 "weight", harvest.getWeight(),
-                "status", "APPROVED"
+                "status", harvest.getStatus().name()
         );
         rabbitTemplate.convertAndSend(RabbitMQConfig.PAYROLL_QUEUE, payrollInfo);
     }
