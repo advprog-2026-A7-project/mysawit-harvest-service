@@ -179,6 +179,16 @@ class HarvestControllerTest {
         verify(jwtIdentityProvider).getAuthenticatedUser(anyString());
     }
 
+    @Test
+    void getHistoryWithStatusSuccess() throws Exception {
+        when(jwtIdentityProvider.getAuthenticatedUser(anyString())).thenReturn(mockHarvester);
+
+        mockMvc.perform(get("/harvests/my")
+                        .header("Authorization", "Bearer token")
+                        .param("status", "APPROVED"))
+                .andExpect(status().isOk());
+    }
+
     // FOREMAN VIEW HARVEST ------------------------------------------------------------------
     @Test
     void viewAllHistoryForemanSuccess() throws Exception {

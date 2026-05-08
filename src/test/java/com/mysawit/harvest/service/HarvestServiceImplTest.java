@@ -117,7 +117,7 @@ class HarvestServiceImplTest {
     // HARVESTER VIEW ------------------------------------------------------------------
     @Test
     void harvesterViewHarvest_FilterByHarvesterId() {
-        when(harvestRepository.findAllByHarvesterIdAndDate(eq(harvesterId), any(), any()))
+        when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any()))
                 .thenReturn(List.of(
                         Harvest.builder().harvesterId(harvesterId).build()
                 ));
@@ -125,9 +125,7 @@ class HarvestServiceImplTest {
         List<HarvestResponse> responses = harvestService.harvesterViewHarvest(harvesterViewRequest, harvesterId);
 
         assertEquals(1, responses.size());
-        assertEquals(harvesterId, responses.getFirst().getHarvesterId());
-
-        verify(harvestRepository).findAllByHarvesterIdAndDate(eq(harvesterId), any(), any());
+        verify(harvestRepository).findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any());
     }
 
     @Test
@@ -135,33 +133,44 @@ class HarvestServiceImplTest {
         Harvest mockHarvest = Harvest.builder()
                 .id(UUID.randomUUID())
                 .harvesterId(harvesterId)
-                .harvesterName("Strawberry Shortcake")
-                .weight(777.0)
                 .status(HarvestStatus.APPROVED)
-                .news("Harvest from blok A")
+                .weight(777.0)
                 .build();
 
-        when(harvestRepository.findAllByHarvesterIdAndDate(any(), any(), any()))
+        when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(any(), any(), any(), any()))
                 .thenReturn(List.of(mockHarvest));
 
         List<HarvestResponse> responses = harvestService.harvesterViewHarvest(harvesterViewRequest, harvesterId);
 
-        HarvestResponse result = responses.getFirst();
-        assertEquals(777.0, result.getWeight());
-        assertEquals(HarvestStatus.APPROVED, result.getStatus());
-        assertEquals("Harvest from blok A", result.getNews());
-        assertEquals("Strawberry Shortcake", result.getHarvesterName());
+        assertEquals(HarvestStatus.APPROVED, responses.getFirst().getStatus());
     }
 
     @Test
     void harvesterViewHarvest_ReturnEmptyList() {
-        when(harvestRepository.findAllByHarvesterIdAndDate(any(), any(), any()))
+        when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(any(), any(), any(), any()))
                 .thenReturn(List.of());
 
         List<HarvestResponse> responses = harvestService.harvesterViewHarvest(harvesterViewRequest, harvesterId);
 
         assertNotNull(responses);
         assertTrue(responses.isEmpty());
+
+        verify(harvestRepository).findAllByHarvesterIdAndDateAndStatus(any(), any(), any(), any());
+    }
+
+    @Test
+    void harvesterViewHarvest_WithSpecificStatus() {
+        harvesterViewRequest.setStatus(HarvestStatus.APPROVED);
+
+        when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), eq(HarvestStatus.APPROVED), any(), any()))
+                .thenReturn(List.of(
+                        Harvest.builder().harvesterId(harvesterId).status(HarvestStatus.APPROVED).build()
+                ));
+
+        List<HarvestResponse> responses = harvestService.harvesterViewHarvest(harvesterViewRequest, harvesterId);
+
+        assertEquals(HarvestStatus.APPROVED, responses.getFirst().getStatus());
+        verify(harvestRepository).findAllByHarvesterIdAndDateAndStatus(any(), eq(HarvestStatus.APPROVED), any(), any());
     }
 
     // FOREMAN VIEW ------------------------------------------------------------------

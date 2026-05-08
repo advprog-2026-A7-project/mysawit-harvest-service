@@ -67,8 +67,9 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId) {
-        List<Harvest> harvestList = harvestRepository.findAllByHarvesterIdAndDate(
+        List<Harvest> harvestList = harvestRepository.findAllByHarvesterIdAndDateAndStatus(
                 harvesterId,
+                request.getStatus(),
                 request.getStartDate(),
                 request.getEndDate()
         );

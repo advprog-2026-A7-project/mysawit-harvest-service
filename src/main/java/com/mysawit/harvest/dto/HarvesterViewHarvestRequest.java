@@ -1,7 +1,9 @@
 package com.mysawit.harvest.dto;
 
+import com.mysawit.harvest.model.HarvestStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -11,6 +13,9 @@ import java.time.LocalTime;
 public class HarvesterViewHarvestRequest {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
+
+    @Setter
+    private HarvestStatus status;
 
     public void setStartDate(LocalDateTime start) {
         if (start != null) {
