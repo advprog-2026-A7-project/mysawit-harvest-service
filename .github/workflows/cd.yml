@@ -59,6 +59,9 @@ jobs:
                 -e RABBITMQ_USERNAME='${{ secrets.RABBITMQ_USERNAME }}' \
                 -e RABBITMQ_PASSWORD='${{ secrets.RABBITMQ_PASSWORD }}' \
                 -e RABBITMQ_VHOST='${{ secrets.RABBITMQ_VHOST }}' \
+                -e IDENTITY_SERVICE_URL='${{ secrets.IDENTITY_SERVICE_URL }}' \
+                -e IDENTITY_INTERNAL_API_KEY='${{ secrets.IDENTITY_INTERNAL_API_KEY }}' \
+                -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
                 -e CORS_ORIGINS='${{ secrets.CORS_ORIGINS }}' \
                 --restart unless-stopped \
                 mysawit-harvest
