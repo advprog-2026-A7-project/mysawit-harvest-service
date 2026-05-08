@@ -26,9 +26,10 @@ class HarvestRepositoryTest {
     private Harvest harvest1;
     private Harvest harvest2;
 
-    private List<Harvest> findHarvesterHarvests(UUID id, LocalDateTime start, LocalDateTime end) {
-        return harvestRepository.findAllByHarvesterIdAndDate(
+    private List<Harvest> findHarvesterHarvests(UUID id, HarvestStatus status, LocalDateTime start, LocalDateTime end) {
+        return harvestRepository.findAllByHarvesterIdAndDateAndStatus(
                 id,
+                status,
                 start != null ? start : LocalDateTime.of(2000, 1, 1, 0, 0),
                 end != null ? end : LocalDateTime.of(2100, 1, 1, 0, 0)
         );
@@ -98,14 +99,14 @@ class HarvestRepositoryTest {
     // HARVESTER VIEW ------------------------------------------------------------------
     @Test
     void findAllByHarvesterIdAndDate_ShowAll_WhenDatesAreNull() {
-        List<Harvest> results = findHarvesterHarvests(harvesterId, null, null);
+        List<Harvest> results = findHarvesterHarvests(harvesterId, null, null, null);
         assertEquals(2, results.size());
     }
 
     @Test
     void findAllByHarvesterIdAndDate_OnlyStartDate() {
         LocalDateTime start = LocalDateTime.of(2026, 3, 10, 0, 0);
-        List<Harvest> results = findHarvesterHarvests(harvesterId, start, null);
+        List<Harvest> results = findHarvesterHarvests(harvesterId, null, start, null);
         assertEquals(1, results.size());
         assertEquals(harvest2.getHarvestDate(), results.getFirst().getHarvestDate());
     }
@@ -113,7 +114,7 @@ class HarvestRepositoryTest {
     @Test
     void findAllByHarvesterIdAndDate_OnlyEndDate() {
         LocalDateTime end = LocalDateTime.of(2026, 3, 5, 23, 59);
-        List<Harvest> results = findHarvesterHarvests(harvesterId, null, end);
+        List<Harvest> results = findHarvesterHarvests(harvesterId, null, null, end);
         assertEquals(1, results.size());
         assertEquals(harvest1.getHarvestDate(), results.getFirst().getHarvestDate());
     }
@@ -122,8 +123,15 @@ class HarvestRepositoryTest {
     void findAllByHarvesterIdAndDate_PassAllDateFilter() {
         LocalDateTime start = LocalDateTime.of(2026, 3, 1, 0, 0);
         LocalDateTime end = LocalDateTime.of(2026, 3, 20, 0, 0);
-        List<Harvest> results = findHarvesterHarvests(harvesterId, start, end);
+        List<Harvest> results = findHarvesterHarvests(harvesterId, null, start, end);
         assertEquals(2, results.size());
+    }
+
+    @Test
+    void findAllByHarvesterIdAndDate_FilterByStatusApproved() {
+        List<Harvest> results = findHarvesterHarvests(harvesterId, HarvestStatus.APPROVED, null, null);
+        assertEquals(1, results.size());
+        assertEquals(HarvestStatus.APPROVED, results.getFirst().getStatus());
     }
 
     // FOREMAN VIEW ------------------------------------------------------------------
