@@ -15,6 +15,7 @@ import com.mysawit.harvest.repository.HarvestRepository;
 import com.mysawit.harvest.repository.UserReplicaRepository;
 
 import com.mysawit.harvest.service.state.HarvestState;
+import com.mysawit.harvest.service.validation.*;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
@@ -36,31 +37,16 @@ public class HarvestServiceImpl implements HarvestService {
     private final IdentityClient identityClient;
     private final UserReplicaRepository userReplicaRepository;
     private final PayrollAdapter payrollAdapter;
+    private final HarvestValidationChain harvestValidationChain;
 
     @Override
     public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId) {
-        validateHarvesterHasNotLoggedToday(harvesterId);
+        harvestValidationChain.validate(request, harvesterId);
 
         HarvesterContext ctx = resolveHarvesterContext(harvesterId);
         Harvest harvest = createPendingHarvest(request, harvesterId, ctx);
-        Harvest harvestSaved = harvestRepository.save(harvest);
 
-        return harvestMapper.mapToResponse(harvestSaved);
-    }
-
-    private void validateHarvesterHasNotLoggedToday(UUID harvesterId) {
-        LocalDateTime dayStart = LocalDate.now().atStartOfDay();
-        LocalDateTime dayEnd = LocalDate.now().atTime(LocalTime.MAX);
-
-        boolean alreadyLoggedToday = harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
-                harvesterId, dayStart, dayEnd
-        );
-
-        if (alreadyLoggedToday) {
-            throw new AlreadyLoggedHarvestTodayException(
-                    "You have already logged a harvest today. Please try again tomorrow."
-            );
-        }
+        return harvestMapper.mapToResponse(harvestRepository.save(harvest));
     }
 
     private Harvest createPendingHarvest(LogHarvestRequest request, UUID harvesterId, HarvesterContext ctx) {
