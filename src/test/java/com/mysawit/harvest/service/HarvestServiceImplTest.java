@@ -407,7 +407,7 @@ class HarvestServiceImplTest {
     }
 
     @Test
-    void updateHarvestStatus_ApprovedWithReasonNull() {
+    void updateHarvestStatus_ApprovedWithReason_ThrowsException() {
         UUID harvestId = UUID.randomUUID();
         updateStatusRequest.setId(harvestId);
         updateStatusRequest.setStatus(HarvestStatus.APPROVED);
@@ -428,7 +428,7 @@ class HarvestServiceImplTest {
     }
 
     @Test
-    void updateStatus_ApprovedWithBlankReason() {
+    void updateHarvestStatus_ApprovedWithBlankReason_DoesNotThrow() {
         updateStatusRequest.setId(harvestId);
         updateStatusRequest.setStatus(HarvestStatus.APPROVED);
         updateStatusRequest.setRejectionReason(" ");
