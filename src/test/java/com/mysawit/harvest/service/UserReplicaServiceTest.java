@@ -1,0 +1,172 @@
+package com.mysawit.harvest.service;
+
+import com.mysawit.harvest.event.UserAssignedEvent;
+import com.mysawit.harvest.event.UserRegisteredEvent;
+import com.mysawit.harvest.model.UserReplica;
+import com.mysawit.harvest.repository.UserReplicaRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class UserReplicaServiceTest {
+
+    @Mock
+    private UserReplicaRepository repository;
+
+    private UserReplicaService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new UserReplicaService(repository);
+    }
+
+    // --- user.registered upserts ---
+
+    @Test
+    void upsertFromRegistration_createsNewReplica_whenAbsent() {
+        UUID userId = UUID.randomUUID();
+        UserRegisteredEvent event = new UserRegisteredEvent(
+                userId.toString(), "buruh@mail.com", "BURUH", "budi");
+        when(repository.findById(userId)).thenReturn(Optional.empty());
+
+        service.upsertFromRegistration(event);
+
+        ArgumentCaptor<UserReplica> captor = ArgumentCaptor.forClass(UserReplica.class);
+        verify(repository).save(captor.capture());
+        UserReplica saved = captor.getValue();
+        assertEquals(userId, saved.getId());
+        assertEquals("budi", saved.getName());
+        assertEquals("BURUH", saved.getRole());
+        assertNull(saved.getMandorId());
+    }
+
+    @Test
+    void upsertFromRegistration_preservesExistingMandorId() {
+        UUID userId = UUID.randomUUID();
+        UUID existingMandor = UUID.randomUUID();
+        UserReplica existing = UserReplica.builder()
+                .id(userId).name("old").role("BURUH").mandorId(existingMandor).build();
+        when(repository.findById(userId)).thenReturn(Optional.of(existing));
+
+        service.upsertFromRegistration(new UserRegisteredEvent(
+                userId.toString(), "buruh@mail.com", "BURUH", "budi"));
+
+        ArgumentCaptor<UserReplica> captor = ArgumentCaptor.forClass(UserReplica.class);
+        verify(repository).save(captor.capture());
+        assertEquals(existingMandor, captor.getValue().getMandorId());
+        assertEquals("budi", captor.getValue().getName());
+    }
+
+    @Test
+    void upsertFromRegistration_fallsBackToEmail_whenUsernameBlank() {
+        UUID userId = UUID.randomUUID();
+        when(repository.findById(userId)).thenReturn(Optional.empty());
+
+        service.upsertFromRegistration(new UserRegisteredEvent(
+                userId.toString(), "buruh@mail.com", "BURUH", ""));
+
+        ArgumentCaptor<UserReplica> captor = ArgumentCaptor.forClass(UserReplica.class);
+        verify(repository).save(captor.capture());
+        assertEquals("buruh@mail.com", captor.getValue().getName());
+    }
+
+    @Test
+    void upsertFromRegistration_upsertsAllRoles() {
+        for (String role : new String[]{"BURUH", "MANDOR", "ADMIN", "SUPIR"}) {
+            UUID id = UUID.randomUUID();
+            when(repository.findById(id)).thenReturn(Optional.empty());
+            service.upsertFromRegistration(new UserRegisteredEvent(
+                    id.toString(), "x@mail.com", role, "user-" + role));
+        }
+        verify(repository, times(4)).save(any(UserReplica.class));
+    }
+
+    @Test
+    void upsertFromRegistration_skipsInvalidUserId() {
+        service.upsertFromRegistration(new UserRegisteredEvent(
+                "not-a-uuid", "x@mail.com", "BURUH", "x"));
+        service.upsertFromRegistration(new UserRegisteredEvent(
+                null, "x@mail.com", "BURUH", "x"));
+        service.upsertFromRegistration(new UserRegisteredEvent(
+                "", "x@mail.com", "BURUH", "x"));
+
+        verifyNoInteractions(repository);
+    }
+
+    // --- user.assigned upserts ---
+
+    @Test
+    void applyAssignment_setsMandorId_whenAssigned() {
+        UUID userId = UUID.randomUUID();
+        UUID mandorId = UUID.randomUUID();
+        UserReplica existing = UserReplica.builder()
+                .id(userId).name("budi").role("BURUH").build();
+        when(repository.findById(userId)).thenReturn(Optional.of(existing));
+
+        service.applyAssignment(new UserAssignedEvent(
+                userId.toString(), mandorId.toString(), "Pak Mandor",
+                UserAssignedEvent.AssignmentAction.ASSIGNED, Instant.now()));
+
+        ArgumentCaptor<UserReplica> captor = ArgumentCaptor.forClass(UserReplica.class);
+        verify(repository).save(captor.capture());
+        assertEquals(mandorId, captor.getValue().getMandorId());
+        assertEquals("budi", captor.getValue().getName()); // preserved
+        assertEquals("BURUH", captor.getValue().getRole()); // preserved
+    }
+
+    @Test
+    void applyAssignment_clearsMandorId_whenUnassigned() {
+        UUID userId = UUID.randomUUID();
+        UserReplica existing = UserReplica.builder()
+                .id(userId).name("budi").role("BURUH").mandorId(UUID.randomUUID()).build();
+        when(repository.findById(userId)).thenReturn(Optional.of(existing));
+
+        service.applyAssignment(new UserAssignedEvent(
+                userId.toString(), null, null,
+                UserAssignedEvent.AssignmentAction.UNASSIGNED, Instant.now()));
+
+        ArgumentCaptor<UserReplica> captor = ArgumentCaptor.forClass(UserReplica.class);
+        verify(repository).save(captor.capture());
+        assertNull(captor.getValue().getMandorId());
+    }
+
+    @Test
+    void applyAssignment_createsStubReplica_whenAssignedBeforeRegistered() {
+        // Out-of-order delivery — assignment lands first, replica row does not exist
+        UUID userId = UUID.randomUUID();
+        UUID mandorId = UUID.randomUUID();
+        when(repository.findById(userId)).thenReturn(Optional.empty());
+
+        service.applyAssignment(new UserAssignedEvent(
+                userId.toString(), mandorId.toString(), "Pak Mandor",
+                UserAssignedEvent.AssignmentAction.ASSIGNED, Instant.now()));
+
+        ArgumentCaptor<UserReplica> captor = ArgumentCaptor.forClass(UserReplica.class);
+        verify(repository).save(captor.capture());
+        assertEquals(userId, captor.getValue().getId());
+        assertEquals(mandorId, captor.getValue().getMandorId());
+        assertNull(captor.getValue().getName());
+        assertNull(captor.getValue().getRole());
+    }
+
+    @Test
+    void applyAssignment_skipsInvalidUserId() {
+        service.applyAssignment(new UserAssignedEvent(
+                "not-a-uuid", UUID.randomUUID().toString(), "x",
+                UserAssignedEvent.AssignmentAction.ASSIGNED, Instant.now()));
+
+        verifyNoInteractions(repository);
+    }
+}

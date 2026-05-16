@@ -9,7 +9,9 @@ import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
+import com.mysawit.harvest.model.UserReplica;
 import com.mysawit.harvest.repository.HarvestRepository;
+import com.mysawit.harvest.repository.UserReplicaRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,15 +28,15 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class HarvestServiceImpl implements HarvestService {
+    private static final String HARVESTER_ROLE = "BURUH";
+
     private final HarvestRepository harvestRepository;
     private final RabbitTemplate rabbitTemplate;
     private final IdentityClient identityClient;
+    private final UserReplicaRepository userReplicaRepository;
 
     @Override
     public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId) {
-        IdentityUserResponse harvester = identityClient.getUserById(harvesterId);
-        UUID assignedForemanId = identityClient.getAssignedForemanId(harvesterId);
-
         LocalDateTime dayStart = LocalDate.now().atStartOfDay();
         LocalDateTime dayEnd = LocalDate.now().atTime(LocalTime.MAX);
 
@@ -48,11 +50,13 @@ public class HarvestServiceImpl implements HarvestService {
             );
         }
 
+        HarvesterContext ctx = resolveHarvesterContext(harvesterId);
+
         Harvest harvest = Harvest.builder()
                 .plantationId(request.getPlantationId())
                 .harvesterId(harvesterId)
-                .foremanId(assignedForemanId)
-                .harvesterName(harvester.getName())
+                .foremanId(ctx.foremanId())
+                .harvesterName(ctx.harvesterName())
                 .weight(request.getWeight())
                 .news(request.getNews())
                 .photos(request.getPhotos())
@@ -64,6 +68,26 @@ public class HarvestServiceImpl implements HarvestService {
 
         return mapResponse(harvestSaved);
     }
+
+    private HarvesterContext resolveHarvesterContext(UUID harvesterId) {
+        UserReplica replica = userReplicaRepository.findById(harvesterId).orElse(null);
+
+        if (replica != null
+                && HARVESTER_ROLE.equals(replica.getRole())
+                && replica.getMandorId() != null
+                && replica.getName() != null) {
+            return new HarvesterContext(replica.getName(), replica.getMandorId());
+        }
+
+        // Fallback while the replica is cold or incomplete.
+        // Once user.registered + user.assigned have flowed for this user,
+        // this branch stops firing and the sync HTTP call disappears.
+        IdentityUserResponse harvester = identityClient.getUserById(harvesterId);
+        UUID foremanId = identityClient.getAssignedForemanId(harvesterId);
+        return new HarvesterContext(harvester.getName(), foremanId);
+    }
+
+    private record HarvesterContext(String harvesterName, UUID foremanId) {}
 
     @Override
     public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId) {
