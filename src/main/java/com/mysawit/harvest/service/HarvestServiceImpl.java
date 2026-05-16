@@ -1,7 +1,7 @@
 package com.mysawit.harvest.service;
 
+import com.mysawit.harvest.adapter.PayrollAdapter;
 import com.mysawit.harvest.client.IdentityClient;
-import com.mysawit.harvest.config.RabbitMQConfig;
 import com.mysawit.harvest.dto.*;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
@@ -16,7 +16,6 @@ import com.mysawit.harvest.repository.UserReplicaRepository;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -33,9 +32,9 @@ public class HarvestServiceImpl implements HarvestService {
 
     private final HarvestMapper harvestMapper;
     private final HarvestRepository harvestRepository;
-    private final RabbitTemplate rabbitTemplate;
     private final IdentityClient identityClient;
     private final UserReplicaRepository userReplicaRepository;
+    private final PayrollAdapter payrollAdapter;
 
     @Override
     public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId) {
@@ -160,7 +159,7 @@ public class HarvestServiceImpl implements HarvestService {
         Harvest savedHarvest = harvestRepository.save(harvest);
 
         if (request.getStatus() == HarvestStatus.APPROVED) {
-            sendToPayrollQueue(savedHarvest);
+            payrollAdapter.publishApprovedHarvest(savedHarvest);
         }
 
         return harvestMapper.mapToResponse(savedHarvest);
@@ -189,15 +188,4 @@ public class HarvestServiceImpl implements HarvestService {
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
-
-    private void sendToPayrollQueue(Harvest harvest) {
-        Map<String, Object> payrollInfo = Map.of(
-                "harvestId", harvest.getId(),
-                "harvesterId", harvest.getHarvesterId(),
-                "weight", harvest.getWeight(),
-                "status", harvest.getStatus().name()
-        );
-        rabbitTemplate.convertAndSend(RabbitMQConfig.PAYROLL_QUEUE, payrollInfo);
-    }
-
 }

@@ -1,5 +1,6 @@
 package com.mysawit.harvest.service;
 
+import com.mysawit.harvest.adapter.PayrollAdapter;
 import com.mysawit.harvest.client.IdentityClient;
 import com.mysawit.harvest.config.RabbitMQConfig;
 import com.mysawit.harvest.dto.*;
@@ -45,13 +46,13 @@ class HarvestServiceImplTest {
     private HarvestRepository harvestRepository;
 
     @Mock
-    private RabbitTemplate rabbitTemplate;
-
-    @Mock
     private IdentityClient identityClient;
 
     @Mock
     private UserReplicaRepository userReplicaRepository;
+
+    @Mock
+    private PayrollAdapter payrollAdapter;
 
     @InjectMocks
     private HarvestServiceImpl harvestService;
@@ -288,10 +289,7 @@ class HarvestServiceImplTest {
         assertEquals(HarvestStatus.APPROVED, response.getStatus());
         verify(harvestRepository).save(any(Harvest.class));
 
-        verify(rabbitTemplate, times(1)).convertAndSend(
-                eq(RabbitMQConfig.PAYROLL_QUEUE),
-                any(Map.class)
-        );
+        verify(payrollAdapter, times(1)).publishApprovedHarvest(any(Harvest.class));
     }
 
     @Test
@@ -446,7 +444,7 @@ class HarvestServiceImplTest {
 
         assertDoesNotThrow(() -> harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
 
-        verify(rabbitTemplate).convertAndSend(eq(RabbitMQConfig.PAYROLL_QUEUE), any(Map.class));
+        verify(payrollAdapter).publishApprovedHarvest(any(Harvest.class));
     }
 
     @Test
@@ -467,7 +465,7 @@ class HarvestServiceImplTest {
 
         harvestService.updateHarvestStatus(request, foremanId);
 
-        verify(rabbitTemplate, never()).convertAndSend(anyString(), any(Map.class));
+        verify(payrollAdapter, never()).publishApprovedHarvest(any(Harvest.class));
     }
 
     @Test
