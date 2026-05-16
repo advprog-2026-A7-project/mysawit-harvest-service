@@ -7,6 +7,7 @@ import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
 import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
+import com.mysawit.harvest.mapper.HarvestMapper;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.model.UserReplica;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
@@ -36,6 +38,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class HarvestServiceImplTest {
+    @Spy
+    private HarvestMapper harvestMapper = new HarvestMapper();
+
     @Mock
     private HarvestRepository harvestRepository;
 
@@ -210,23 +215,6 @@ class HarvestServiceImplTest {
 
         assertEquals(1, responses.size());
         verify(harvestRepository).findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any());
-    }
-
-    @Test
-    void harvesterViewHarvest_EnsureCorrectMapping() {
-        Harvest mockHarvest = Harvest.builder()
-                .id(UUID.randomUUID())
-                .harvesterId(harvesterId)
-                .status(HarvestStatus.APPROVED)
-                .weight(777.0)
-                .build();
-
-        when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(any(), any(), any(), any()))
-                .thenReturn(List.of(mockHarvest));
-
-        List<HarvestResponse> responses = harvestService.harvesterViewHarvest(harvesterViewRequest, harvesterId);
-
-        assertEquals(HarvestStatus.APPROVED, responses.getFirst().getStatus());
     }
 
     @Test

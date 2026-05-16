@@ -7,6 +7,7 @@ import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
 import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
+import com.mysawit.harvest.mapper.HarvestMapper;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.model.UserReplica;
@@ -30,6 +31,7 @@ import java.util.UUID;
 public class HarvestServiceImpl implements HarvestService {
     private static final String HARVESTER_ROLE = "BURUH";
 
+    private final HarvestMapper harvestMapper;
     private final HarvestRepository harvestRepository;
     private final RabbitTemplate rabbitTemplate;
     private final IdentityClient identityClient;
@@ -66,7 +68,7 @@ public class HarvestServiceImpl implements HarvestService {
 
         Harvest harvestSaved = harvestRepository.save(harvest);
 
-        return mapResponse(harvestSaved);
+        return harvestMapper.mapToResponse(harvestSaved);
     }
 
     private HarvesterContext resolveHarvesterContext(UUID harvesterId) {
@@ -99,7 +101,7 @@ public class HarvestServiceImpl implements HarvestService {
         );
 
         return harvestList.stream()
-                .map(this::mapResponse)
+                .map(harvestMapper::mapToResponse)
                 .toList();
     }
 
@@ -113,7 +115,7 @@ public class HarvestServiceImpl implements HarvestService {
         );
 
         return harvestList.stream()
-                .map(this::mapResponse)
+                .map(harvestMapper::mapToResponse)
                 .toList();
     }
 
@@ -132,7 +134,7 @@ public class HarvestServiceImpl implements HarvestService {
             }
         }
 
-        return mapResponse(harvest);
+        return harvestMapper.mapToResponse(harvest);
     }
 
     @Override
@@ -169,24 +171,7 @@ public class HarvestServiceImpl implements HarvestService {
             sendToPayrollQueue(savedHarvest);
         }
 
-        return mapResponse(savedHarvest);
-    }
-
-    private HarvestResponse mapResponse(Harvest harvest) {
-        return HarvestResponse.builder()
-                .id(harvest.getId())
-                .plantationId(harvest.getPlantationId())
-                .harvesterId(harvest.getHarvesterId())
-                .foremanId(harvest.getForemanId())
-                .harvesterName(harvest.getHarvesterName())
-                .weight(harvest.getWeight())
-                .news(harvest.getNews())
-                .photos(harvest.getPhotos())
-                .status(harvest.getStatus())
-                .rejectionReason(harvest.getRejectionReason())
-                .harvestDate(harvest.getHarvestDate())
-                .statusUpdatedDate(harvest.getStatusUpdatedDate())
-                .build();
+        return harvestMapper.mapToResponse(savedHarvest);
     }
 
     private void sendToPayrollQueue(Harvest harvest) {
