@@ -1,5 +1,7 @@
 package com.mysawit.harvest.service;
 
+import com.mysawit.harvest.client.IdentityClient;
+import com.mysawit.harvest.config.RabbitMQConfig;
 import com.mysawit.harvest.dto.*;
 import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
@@ -7,25 +9,34 @@ import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
+import com.mysawit.harvest.model.UserReplica;
 import com.mysawit.harvest.repository.HarvestRepository;
+import com.mysawit.harvest.repository.UserReplicaRepository;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class HarvestServiceImpl implements HarvestService {
+    private static final String HARVESTER_ROLE = "BURUH";
+
     private final HarvestRepository harvestRepository;
+    private final RabbitTemplate rabbitTemplate;
+    private final IdentityClient identityClient;
+    private final UserReplicaRepository userReplicaRepository;
 
     @Override
-    public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId, UUID foremanId, String harvesterName) {
+    public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId) {
         LocalDateTime dayStart = LocalDate.now().atStartOfDay();
         LocalDateTime dayEnd = LocalDate.now().atTime(LocalTime.MAX);
 
@@ -39,11 +50,13 @@ public class HarvestServiceImpl implements HarvestService {
             );
         }
 
+        HarvesterContext ctx = resolveHarvesterContext(harvesterId);
+
         Harvest harvest = Harvest.builder()
                 .plantationId(request.getPlantationId())
                 .harvesterId(harvesterId)
-                .foremanId(foremanId)
-                .harvesterName(harvesterName)
+                .foremanId(ctx.foremanId())
+                .harvesterName(ctx.harvesterName())
                 .weight(request.getWeight())
                 .news(request.getNews())
                 .photos(request.getPhotos())
@@ -56,17 +69,31 @@ public class HarvestServiceImpl implements HarvestService {
         return mapResponse(harvestSaved);
     }
 
-    @Override
-    public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
-        if (harvesterId == null) {
-            if (foremanId != null) {
-                throw new UnauthorizedUserException("Only registered harvesters are permitted to view their own harvest history.");
-            }
-            throw new UnauthorizedUserException("Required identity to view harvest logs.");
+    private HarvesterContext resolveHarvesterContext(UUID harvesterId) {
+        UserReplica replica = userReplicaRepository.findById(harvesterId).orElse(null);
+
+        if (replica != null
+                && HARVESTER_ROLE.equals(replica.getRole())
+                && replica.getMandorId() != null
+                && replica.getName() != null) {
+            return new HarvesterContext(replica.getName(), replica.getMandorId());
         }
 
-        List<Harvest> harvestList = harvestRepository.findAllByHarvesterIdAndDate(
+        // Fallback while the replica is cold or incomplete.
+        // Once user.registered + user.assigned have flowed for this user,
+        // this branch stops firing and the sync HTTP call disappears.
+        IdentityUserResponse harvester = identityClient.getUserById(harvesterId);
+        UUID foremanId = identityClient.getAssignedForemanId(harvesterId);
+        return new HarvesterContext(harvester.getName(), foremanId);
+    }
+
+    private record HarvesterContext(String harvesterName, UUID foremanId) {}
+
+    @Override
+    public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId) {
+        List<Harvest> harvestList = harvestRepository.findAllByHarvesterIdAndDateAndStatus(
                 harvesterId,
+                request.getStatus(),
                 request.getStartDate(),
                 request.getEndDate()
         );
@@ -77,14 +104,7 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
-    public List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID harvesterId, UUID foremanId) {
-        if (foremanId == null) {
-            if (harvesterId != null) {
-                throw new UnauthorizedUserException("Only registered foremen are permitted to access.");
-            }
-            throw new UnauthorizedUserException("Required identity to view harvest logs.");
-        }
-
+    public List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID foremanId) {
         List<Harvest> harvestList = harvestRepository.findAllByHarvesterNameAndDate(
                 foremanId,
                 request.getHarvesterName(),
@@ -99,10 +119,6 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public HarvestResponse getHarvestDetail(UUID id, UUID harvesterId, UUID foremanId) {
-        if (harvesterId == null && foremanId == null) {
-            throw new UnauthorizedUserException("Required identity to view harvest details.");
-        }
-
         Harvest harvest = harvestRepository.findById(id)
                 .orElseThrow(() -> new HarvestLogNotFoundException("Harvest log not found with ID: " + id));
 
@@ -121,22 +137,25 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public HarvestResponse updateHarvestStatus(UpdateHarvestStatusRequest request, UUID foremanId) {
-        if (foremanId == null) { throw new UnauthorizedUserException("Required foreman identity."); }
-
         Harvest harvest = harvestRepository.findById(request.getId())
                 .orElseThrow(() -> new HarvestLogNotFoundException("Harvest log not found with ID: " + request.getId()));
 
-        if (!harvest.getForemanId().equals(foremanId)) { throw new UnauthorizedUserException("You are not authorized to update this log.");}
+        if (!harvest.getForemanId().equals(foremanId)) {
+            throw new UnauthorizedUserException("You are not authorized to update this log.");
+        }
 
-        if (harvest.getStatus() != HarvestStatus.PENDING) { throw new HarvestStatusAlreadyUpdatedException("Status already processed and cannot be changed."); }
+        if (harvest.getStatus() != HarvestStatus.PENDING) {
+            throw new HarvestStatusAlreadyUpdatedException("Status already processed and cannot be changed.");
+        }
 
         boolean isRejecting = request.getStatus() == HarvestStatus.REJECTED;
+        boolean isApproving = request.getStatus() == HarvestStatus.APPROVED;
 
         if (isRejecting && (request.getRejectionReason() == null || request.getRejectionReason().isBlank())) {
             throw new IllegalArgumentException("Rejection reason must be provided when rejecting a harvest.");
         }
 
-        if (request.getStatus() == HarvestStatus.APPROVED && request.getRejectionReason() != null && !request.getRejectionReason().isBlank()) {
+        if (isApproving && request.getRejectionReason() != null && !request.getRejectionReason().isBlank()) {
             throw new IllegalArgumentException("Rejection reason cannot be provided for an approved harvest.");
         }
 
@@ -144,7 +163,13 @@ public class HarvestServiceImpl implements HarvestService {
         harvest.setRejectionReason(isRejecting ? request.getRejectionReason() : null);
         harvest.setStatusUpdatedDate(LocalDateTime.now());
 
-        return mapResponse(harvestRepository.save(harvest));
+        Harvest savedHarvest = harvestRepository.save(harvest);
+
+        if (isApproving) {
+            sendToPayrollQueue(savedHarvest);
+        }
+
+        return mapResponse(savedHarvest);
     }
 
     private HarvestResponse mapResponse(Harvest harvest) {
@@ -162,5 +187,15 @@ public class HarvestServiceImpl implements HarvestService {
                 .harvestDate(harvest.getHarvestDate())
                 .statusUpdatedDate(harvest.getStatusUpdatedDate())
                 .build();
+    }
+
+    private void sendToPayrollQueue(Harvest harvest) {
+        Map<String, Object> payrollInfo = Map.of(
+                "harvestId", harvest.getId(),
+                "harvesterId", harvest.getHarvesterId(),
+                "weight", harvest.getWeight(),
+                "status", harvest.getStatus().name()
+        );
+        rabbitTemplate.convertAndSend(RabbitMQConfig.PAYROLL_QUEUE, payrollInfo);
     }
 }
