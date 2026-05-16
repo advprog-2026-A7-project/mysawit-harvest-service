@@ -14,6 +14,7 @@ import com.mysawit.harvest.model.UserReplica;
 import com.mysawit.harvest.repository.HarvestRepository;
 import com.mysawit.harvest.repository.UserReplicaRepository;
 
+import com.mysawit.harvest.service.state.HarvestState;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
@@ -150,15 +151,20 @@ public class HarvestServiceImpl implements HarvestService {
                 .orElseThrow(() -> new HarvestLogNotFoundException("Harvest log not found with ID: " + request.getId()));
 
         validateAuthorizedToUpdateHarvestStatus(harvest, foremanId);
-        validateHarvestStatusUpdate(harvest, request);
 
-        harvest.setStatus(request.getStatus());
-        harvest.setRejectionReason((request.getStatus() == HarvestStatus.REJECTED) ? request.getRejectionReason() : null);
-        harvest.setStatusUpdatedDate(LocalDateTime.now());
+        HarvestState state = HarvestState.of(harvest);
 
-        Harvest savedHarvest = harvestRepository.save(harvest);
-
+        Harvest updatedHarvest;
         if (request.getStatus() == HarvestStatus.APPROVED) {
+            updatedHarvest = state.approve(harvest, request.getRejectionReason());
+        } else if (request.getStatus() == HarvestStatus.REJECTED) {
+            updatedHarvest = state.reject(harvest, request.getRejectionReason());
+        } else {
+            throw new IllegalArgumentException("Harvest status can only be updated to APPROVED or REJECTED status.");
+        }
+
+        Harvest savedHarvest = harvestRepository.save(updatedHarvest);
+        if (savedHarvest.getStatus() == HarvestStatus.APPROVED) {
             payrollAdapter.publishApprovedHarvest(savedHarvest);
         }
 
@@ -169,23 +175,5 @@ public class HarvestServiceImpl implements HarvestService {
         if (!harvest.getForemanId().equals(foremanId)) {
             throw new UnauthorizedUserException("You are not authorized to update this log.");
         }
-    }
-
-    private void validateHarvestStatusUpdate(Harvest harvest, UpdateHarvestStatusRequest request) {
-        if (harvest.getStatus() != HarvestStatus.PENDING) {
-            throw new HarvestStatusAlreadyUpdatedException("Status already processed and cannot be changed.");
-        }
-
-        if ((request.getStatus() == HarvestStatus.REJECTED) && isBlank(request.getRejectionReason())) {
-            throw new IllegalArgumentException("Rejection reason must be provided when rejecting a harvest.");
-        }
-
-        if ((request.getStatus() == HarvestStatus.APPROVED) && !isBlank(request.getRejectionReason())) {
-            throw new IllegalArgumentException("Rejection reason cannot be provided for an approved harvest.");
-        }
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }
