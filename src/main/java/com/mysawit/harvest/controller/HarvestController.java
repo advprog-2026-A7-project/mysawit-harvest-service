@@ -4,13 +4,16 @@ import com.mysawit.harvest.dto.*;
 import com.mysawit.harvest.security.JwtIdentityProvider;
 import com.mysawit.harvest.service.HarvestService;
 
+import com.mysawit.harvest.service.storage.StorageService;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -22,13 +25,21 @@ import java.util.UUID;
 public class HarvestController {
     private final HarvestService harvestService;
     private final JwtIdentityProvider jwtIdentityProvider;
+    private final StorageService storageService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> logHarvest(
-            @Valid @RequestBody LogHarvestRequest request,
+            @Valid @RequestPart("request") LogHarvestRequest request,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @RequestHeader("Authorization") String authorization
     ) {
         AuthenticatedUser user = jwtIdentityProvider.getAuthenticatedUser(authorization);
+
+        if (files == null || files.stream().anyMatch(MultipartFile::isEmpty)) {
+            throw new IllegalArgumentException("At least one valid photo file must be provided.");
+        }
+        List<String> photoUrls = storageService.uploadFiles(files);
+        request.setPhotos(photoUrls);
 
         HarvestResponse response = harvestService.logHarvest(request, getHarvesterId(user)
         );
