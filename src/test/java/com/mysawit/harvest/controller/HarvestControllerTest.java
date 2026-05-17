@@ -12,12 +12,14 @@ import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.security.JwtIdentityProvider;
 import com.mysawit.harvest.service.HarvestService;
+import com.mysawit.harvest.service.storage.StorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -27,9 +29,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(HarvestController.class)
@@ -47,12 +47,17 @@ class HarvestControllerTest {
     @MockitoBean
     private JwtIdentityProvider jwtIdentityProvider;
 
+    @MockitoBean
+    private StorageService storageService;
+
     private UUID harvesterId;
     private UUID foremanId;
     private AuthenticatedUser mockHarvester;
     private AuthenticatedUser mockForeman;
     private LogHarvestRequest validRequest;
     private UpdateHarvestStatusRequest updateStatusRequest;
+    private MockMultipartFile mockFile1;
+    private MockMultipartFile mockFile2;
 
     @BeforeEach
     void setUp() {
@@ -75,6 +80,9 @@ class HarvestControllerTest {
         validRequest.setNews("Successful harvest");
 
         updateStatusRequest = new UpdateHarvestStatusRequest();
+
+        mockFile1 = new MockMultipartFile("files", "foto1.jpg", MediaType.IMAGE_JPEG_VALUE, "bukti-panen-1".getBytes());
+        mockFile2 = new MockMultipartFile("files", "foto2.jpg", MediaType.IMAGE_JPEG_VALUE, "bukti-panen-2".getBytes());
     }
 
     // HARVEST LOG ------------------------------------------------------------------
@@ -82,13 +90,20 @@ class HarvestControllerTest {
     void logHarvestSuccess() throws Exception {
         UUID randomId = UUID.randomUUID();
         when(jwtIdentityProvider.getAuthenticatedUser(anyString())).thenReturn(mockHarvester);
+        when(storageService.uploadFiles(anyList())).thenReturn(List.of("https://supabase.co/foto1.jpg"));
         when(harvestService.logHarvest(any(), eq(harvesterId)))
                 .thenReturn(HarvestResponse.builder().id(randomId).build());
 
-        mockMvc.perform(post("/harvests")
-                        .header("Authorization", "Bearer valid-token")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
+        org.springframework.mock.web.MockPart requestPart = new org.springframework.mock.web.MockPart(
+                "request", objectMapper.writeValueAsBytes(validRequest)
+        );
+        requestPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(multipart("/harvests")
+                        .file(mockFile1)
+                        .file(mockFile2)
+                        .part(requestPart)
+                        .header("Authorization", "Bearer valid-token"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.message").value("Harvest successfully logged"))
                 .andExpect(jsonPath("$.id").value(randomId.toString()));
@@ -97,13 +112,19 @@ class HarvestControllerTest {
     @Test
     void alreadyLogged() throws Exception {
         when(jwtIdentityProvider.getAuthenticatedUser(anyString())).thenReturn(mockHarvester);
+        when(storageService.uploadFiles(anyList())).thenReturn(List.of("https://supabase.co/foto1.jpg"));
         when(harvestService.logHarvest(any(), any()))
                 .thenThrow(new AlreadyLoggedHarvestTodayException("Already logged today"));
 
-        mockMvc.perform(post("/harvests")
-                        .header("Authorization", "Bearer token")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
+        org.springframework.mock.web.MockPart requestPart = new org.springframework.mock.web.MockPart(
+                "request", objectMapper.writeValueAsBytes(validRequest)
+        );
+        requestPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(multipart("/harvests")
+                        .file(mockFile1)
+                        .part(requestPart)
+                        .header("Authorization", "Bearer token"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Already logged today"));
     }
@@ -113,10 +134,15 @@ class HarvestControllerTest {
         when(jwtIdentityProvider.getAuthenticatedUser(anyString())).thenReturn(mockHarvester);
         LogHarvestRequest invalidRequest = new LogHarvestRequest();
 
-        mockMvc.perform(post("/harvests")
-                        .header("Authorization", "Bearer token")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
+        org.springframework.mock.web.MockPart requestPart = new org.springframework.mock.web.MockPart(
+                "request", objectMapper.writeValueAsBytes(invalidRequest)
+        );
+        requestPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(multipart("/harvests")
+                        .file(mockFile1)
+                        .part(requestPart)
+                        .header("Authorization", "Bearer token"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
     }
@@ -124,17 +150,64 @@ class HarvestControllerTest {
     @Test
     void logHarvest_ThrowsIllegalArgumentException() throws Exception {
         when(jwtIdentityProvider.getAuthenticatedUser(anyString())).thenReturn(mockHarvester);
+        when(storageService.uploadFiles(anyList())).thenReturn(List.of("https://supabase.co/foto1.jpg"));
 
         when(harvestService.logHarvest(any(), any()))
                 .thenThrow(new IllegalArgumentException("Invalid input data"));
 
-        mockMvc.perform(post("/harvests")
-                        .header("Authorization", "Bearer token")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
+        org.springframework.mock.web.MockPart requestPart = new org.springframework.mock.web.MockPart(
+                "request", objectMapper.writeValueAsBytes(validRequest)
+        );
+        requestPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(multipart("/harvests")
+                        .file(mockFile1)
+                        .part(requestPart)
+                        .header("Authorization", "Bearer token"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("INVALID_ARGUMENT"))
                 .andExpect(jsonPath("$.message").value("Invalid input data"));
+    }
+
+    @Test
+    void logHarvest_WithAnEmptyFileInList_ShouldThrowBadRequest() throws Exception {
+        when(jwtIdentityProvider.getAuthenticatedUser(anyString())).thenReturn(mockHarvester);
+
+        org.springframework.mock.web.MockPart requestPart = new org.springframework.mock.web.MockPart(
+                "request", objectMapper.writeValueAsBytes(validRequest)
+        );
+        requestPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        org.springframework.mock.web.MockPart validFile = new org.springframework.mock.web.MockPart("files", "foto1.jpg", "bukti".getBytes());
+        org.springframework.mock.web.MockPart emptyFile = new org.springframework.mock.web.MockPart("files", "foto2.jpg", new byte[0]);
+        validFile.getHeaders().setContentType(MediaType.IMAGE_JPEG);
+        emptyFile.getHeaders().setContentType(MediaType.IMAGE_JPEG);
+
+        mockMvc.perform(multipart("/harvests")
+                        .part(validFile)
+                        .part(emptyFile)
+                        .part(requestPart)
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_ARGUMENT"))
+                .andExpect(jsonPath("$.message").value("At least one valid photo file must be provided."));
+    }
+
+    @Test
+    void logHarvest_WithNoFilesPart_ShouldThrowBadRequest() throws Exception {
+        when(jwtIdentityProvider.getAuthenticatedUser(anyString())).thenReturn(mockHarvester);
+
+        org.springframework.mock.web.MockPart requestPart = new org.springframework.mock.web.MockPart(
+                "request", objectMapper.writeValueAsBytes(validRequest)
+        );
+        requestPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(multipart("/harvests")
+                        .part(requestPart)
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_ARGUMENT"))
+                .andExpect(jsonPath("$.message").value("At least one valid photo file must be provided."));
     }
 
     // HARVESTER VIEW HARVEST ------------------------------------------------------------------
