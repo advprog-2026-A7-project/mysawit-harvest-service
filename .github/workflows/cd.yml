@@ -31,7 +31,7 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
-          source: "build/libs/*.jar,Dockerfile"
+          source: "build/libs/*.jar,Dockerfile,docker-compose.yml,monitoring/"
           target: "~/mysawit-harvest"
           strip_components: 0
 
@@ -65,6 +65,10 @@ jobs:
                 -e CORS_ORIGINS='${{ secrets.CORS_ORIGINS }}' \
                 --restart unless-stopped \
                 mysawit-harvest
+              
+              echo "GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}" > .env
+              echo "GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" >> .env
+              sudo docker-compose up -d || sudo docker compose up -d
 
       - name: Verify Health
         uses: appleboy/ssh-action@master

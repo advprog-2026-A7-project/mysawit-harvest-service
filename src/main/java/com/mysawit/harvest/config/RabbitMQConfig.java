@@ -13,16 +13,20 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableRabbit
 public class RabbitMQConfig {
-
-    // Harvest -> Payroll (existing — untouched)
     public static final String PAYROLL_QUEUE = "payroll_queue";
 
-    // Identity -> Harvest (additive, mirrors Identity's exchange)
     public static final String USER_EXCHANGE = "user.exchange";
     public static final String USER_REGISTERED_ROUTING_KEY = "user.registered";
     public static final String USER_ASSIGNED_ROUTING_KEY = "user.assigned";
     public static final String HARVEST_USER_REGISTERED_QUEUE = "harvest.user.registered.queue";
     public static final String HARVEST_USER_ASSIGNED_QUEUE = "harvest.user.assigned.queue";
+
+    public static final String HARVEST_EXCHANGE = "harvest.exchange";
+
+    @Bean
+    public TopicExchange harvestExchange() {
+        return new TopicExchange(HARVEST_EXCHANGE, true, false);
+    }
 
     @Bean
     public Queue payrollQueue() {

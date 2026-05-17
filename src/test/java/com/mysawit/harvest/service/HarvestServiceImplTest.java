@@ -1,30 +1,28 @@
 package com.mysawit.harvest.service;
 
-import com.mysawit.harvest.client.IdentityClient;
-import com.mysawit.harvest.config.RabbitMQConfig;
+import com.mysawit.harvest.adapter.PayrollAdapter;
 import com.mysawit.harvest.dto.*;
-import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
-import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
+import com.mysawit.harvest.mapper.HarvestMapper;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
-import com.mysawit.harvest.model.UserReplica;
 import com.mysawit.harvest.repository.HarvestRepository;
-import com.mysawit.harvest.repository.UserReplicaRepository;
 
+import com.mysawit.harvest.service.harvester.HarvesterContext;
+import com.mysawit.harvest.service.harvester.HarvesterContextResolver;
+import com.mysawit.harvest.service.validation.HarvestValidationChain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,20 +34,23 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class HarvestServiceImplTest {
+    @Spy
+    private HarvestMapper harvestMapper = new HarvestMapper();
+
     @Mock
     private HarvestRepository harvestRepository;
 
     @Mock
-    private RabbitTemplate rabbitTemplate;
-
-    @Mock
-    private IdentityClient identityClient;
-
-    @Mock
-    private UserReplicaRepository userReplicaRepository;
+    private PayrollAdapter payrollAdapter;
 
     @InjectMocks
     private HarvestServiceImpl harvestService;
+
+    @Mock
+    private HarvestValidationChain harvestValidationChain;
+
+    @Mock
+    private HarvesterContextResolver harvesterContextResolver;
 
     private UUID harvesterId;
     private UUID foremanId;
@@ -83,16 +84,18 @@ class HarvestServiceImplTest {
     }
 
     // HARVEST LOG ------------------------------------------------------------------
+    private void mockValidationChain() {
+        doNothing().when(harvestValidationChain).validate(logRequest, harvesterId);
+    }
+
     @Test
     void logHarvest_Success() {
+        mockValidationChain();
+
         mockUser.setName(harvesterName);
 
-        when(identityClient.getUserById(harvesterId)).thenReturn(mockUser);
-        when(identityClient.getAssignedForemanId(harvesterId)).thenReturn(foremanId);
-
-        when(harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
-                eq(harvesterId), any(), any())).thenReturn(false);
-
+        when(harvesterContextResolver.resolve(harvesterId))
+                .thenReturn(new HarvesterContext(harvesterName, foremanId));
         when(harvestRepository.save(any(Harvest.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId);
@@ -103,99 +106,8 @@ class HarvestServiceImplTest {
         assertEquals(foremanId, response.getForemanId());
         assertEquals(HarvestStatus.PENDING, response.getStatus());
 
-        verify(identityClient).getUserById(harvesterId);
-        verify(identityClient).getAssignedForemanId(harvesterId);
+        verify(harvesterContextResolver).resolve(harvesterId);
         verify(harvestRepository).save(any(Harvest.class));
-    }
-
-    @Test
-    void logHarvest_AlreadyLoggedToday_ThrowsException() {
-        when(harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
-                eq(harvesterId), any(), any())).thenReturn(true);
-
-        assertThrows(AlreadyLoggedHarvestTodayException.class, () ->
-                harvestService.logHarvest(logRequest, harvesterId));
-
-        verify(harvestRepository, never()).save(any());
-    }
-
-    @Test
-    void logHarvest_ReplicaHit_SkipsIdentityClient() {
-        UserReplica replica = UserReplica.builder()
-                .id(harvesterId)
-                .name(harvesterName)
-                .role("BURUH")
-                .mandorId(foremanId)
-                .build();
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replica));
-        when(harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
-                eq(harvesterId), any(), any())).thenReturn(false);
-        when(harvestRepository.save(any(Harvest.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId);
-
-        assertEquals(harvesterName, response.getHarvesterName());
-        assertEquals(foremanId, response.getForemanId());
-        verifyNoInteractions(identityClient);
-    }
-
-    @Test
-    void logHarvest_ReplicaMissing_FallsBackToIdentityClient() {
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.empty());
-        mockUser.setName(harvesterName);
-        when(identityClient.getUserById(harvesterId)).thenReturn(mockUser);
-        when(identityClient.getAssignedForemanId(harvesterId)).thenReturn(foremanId);
-        when(harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
-                eq(harvesterId), any(), any())).thenReturn(false);
-        when(harvestRepository.save(any(Harvest.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId);
-
-        assertEquals(harvesterName, response.getHarvesterName());
-        assertEquals(foremanId, response.getForemanId());
-        verify(identityClient).getUserById(harvesterId);
-        verify(identityClient).getAssignedForemanId(harvesterId);
-    }
-
-    @Test
-    void logHarvest_ReplicaIncomplete_FallsBackToIdentityClient() {
-        // Replica exists but mandorId not yet propagated by user.assigned
-        UserReplica replica = UserReplica.builder()
-                .id(harvesterId)
-                .name(harvesterName)
-                .role("BURUH")
-                .mandorId(null)
-                .build();
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replica));
-        mockUser.setName(harvesterName);
-        when(identityClient.getUserById(harvesterId)).thenReturn(mockUser);
-        when(identityClient.getAssignedForemanId(harvesterId)).thenReturn(foremanId);
-        when(harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
-                eq(harvesterId), any(), any())).thenReturn(false);
-        when(harvestRepository.save(any(Harvest.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId);
-
-        assertEquals(foremanId, response.getForemanId());
-        verify(identityClient).getAssignedForemanId(harvesterId);
-    }
-
-    @Test
-    void logHarvest_ReplicaWrongRole_FallsBackToIdentityClient() {
-        UserReplica replica = UserReplica.builder()
-                .id(harvesterId)
-                .name(harvesterName)
-                .role("MANDOR") // not BURUH — IdentityClient must enforce the rule
-                .mandorId(foremanId)
-                .build();
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replica));
-        mockUser.setName(harvesterName);
-        when(identityClient.getUserById(harvesterId)).thenReturn(mockUser);
-        when(identityClient.getAssignedForemanId(harvesterId))
-                .thenThrow(new UnauthorizedUserException("User is not a harvester."));
-
-        assertThrows(UnauthorizedUserException.class,
-                () -> harvestService.logHarvest(logRequest, harvesterId));
     }
 
     // HARVESTER VIEW ------------------------------------------------------------------
@@ -210,23 +122,6 @@ class HarvestServiceImplTest {
 
         assertEquals(1, responses.size());
         verify(harvestRepository).findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any());
-    }
-
-    @Test
-    void harvesterViewHarvest_EnsureCorrectMapping() {
-        Harvest mockHarvest = Harvest.builder()
-                .id(UUID.randomUUID())
-                .harvesterId(harvesterId)
-                .status(HarvestStatus.APPROVED)
-                .weight(777.0)
-                .build();
-
-        when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(any(), any(), any(), any()))
-                .thenReturn(List.of(mockHarvest));
-
-        List<HarvestResponse> responses = harvestService.harvesterViewHarvest(harvesterViewRequest, harvesterId);
-
-        assertEquals(HarvestStatus.APPROVED, responses.getFirst().getStatus());
     }
 
     @Test
@@ -300,10 +195,7 @@ class HarvestServiceImplTest {
         assertEquals(HarvestStatus.APPROVED, response.getStatus());
         verify(harvestRepository).save(any(Harvest.class));
 
-        verify(rabbitTemplate, times(1)).convertAndSend(
-                eq(RabbitMQConfig.PAYROLL_QUEUE),
-                any(Map.class)
-        );
+        verify(payrollAdapter, times(1)).publishApprovedHarvest(any(Harvest.class));
     }
 
     @Test
@@ -325,28 +217,6 @@ class HarvestServiceImplTest {
                 harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
 
         verify(harvestRepository, never()).save(any());
-    }
-
-    @Test
-    void updateHarvestStatus_AlreadyProcessed() {
-        UUID harvestId = UUID.randomUUID();
-
-        updateStatusRequest.setId(harvestId);
-        updateStatusRequest.setStatus(HarvestStatus.REJECTED);
-        updateStatusRequest.setRejectionReason("Bad harvest.");
-
-        when(harvestRepository.findById(eq(harvestId))).thenReturn(java.util.Optional.of(
-                Harvest.builder()
-                        .id(harvestId)
-                        .foremanId(foremanId)
-                        .status(HarvestStatus.APPROVED)
-                        .build()
-        ));
-
-        assertThrows(HarvestStatusAlreadyUpdatedException.class, () ->
-                harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
-
-        verify(harvestRepository, never()).save(any(Harvest.class));
     }
 
     @Test
@@ -389,79 +259,6 @@ class HarvestServiceImplTest {
     }
 
     @Test
-    void updateHarvestStatus_RejectedWithoutReason() {
-        UUID harvestId = UUID.randomUUID();
-        updateStatusRequest.setId(harvestId);
-        updateStatusRequest.setStatus(HarvestStatus.REJECTED);
-        updateStatusRequest.setRejectionReason(null);
-
-        when(harvestRepository.findById(eq(harvestId))).thenReturn(java.util.Optional.of(
-                Harvest.builder().id(harvestId).foremanId(foremanId).status(HarvestStatus.PENDING).build()
-        ));
-
-        assertThrows(IllegalArgumentException.class, () ->
-                harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
-    }
-
-    @Test
-    void updateHarvestStatus_RejectedWithBlankReason() {
-        UUID harvestId = UUID.randomUUID();
-        updateStatusRequest.setId(harvestId);
-        updateStatusRequest.setStatus(HarvestStatus.REJECTED);
-        updateStatusRequest.setRejectionReason("   ");
-
-        when(harvestRepository.findById(any())).thenReturn(java.util.Optional.of(
-                Harvest.builder().id(harvestId).foremanId(foremanId).status(HarvestStatus.PENDING).build()
-        ));
-
-        assertThrows(IllegalArgumentException.class, () ->
-                harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
-    }
-
-    @Test
-    void updateHarvestStatus_ApprovedWithReasonNull() {
-        UUID harvestId = UUID.randomUUID();
-        updateStatusRequest.setId(harvestId);
-        updateStatusRequest.setStatus(HarvestStatus.APPROVED);
-        updateStatusRequest.setRejectionReason("Test");
-
-        Harvest mockHarvest = Harvest.builder()
-                .id(harvestId)
-                .foremanId(foremanId)
-                .status(HarvestStatus.PENDING)
-                .build();
-
-        when(harvestRepository.findById(harvestId)).thenReturn(java.util.Optional.of(mockHarvest));
-
-        assertThrows(IllegalArgumentException.class, () ->
-                harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
-
-        verify(harvestRepository, never()).save(any());
-    }
-
-    @Test
-    void updateStatus_ApprovedWithBlankReason() {
-        updateStatusRequest.setId(harvestId);
-        updateStatusRequest.setStatus(HarvestStatus.APPROVED);
-        updateStatusRequest.setRejectionReason(" ");
-
-        Harvest mockHarvest = Harvest.builder()
-                .id(harvestId)
-                .harvesterId(UUID.randomUUID())
-                .weight(777.0)
-                .foremanId(foremanId)
-                .status(HarvestStatus.PENDING)
-                .build();
-
-        when(harvestRepository.findById(harvestId)).thenReturn(Optional.of(mockHarvest));
-        when(harvestRepository.save(any())).thenReturn(mockHarvest);
-
-        assertDoesNotThrow(() -> harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
-
-        verify(rabbitTemplate).convertAndSend(eq(RabbitMQConfig.PAYROLL_QUEUE), any(Map.class));
-    }
-
-    @Test
     void updateHarvestStatus_Rejected_ShouldNotSendRabbitMQMessage() {
         UpdateHarvestStatusRequest request = new UpdateHarvestStatusRequest();
         request.setId(harvestId);
@@ -479,14 +276,13 @@ class HarvestServiceImplTest {
 
         harvestService.updateHarvestStatus(request, foremanId);
 
-        verify(rabbitTemplate, never()).convertAndSend(anyString(), any(Map.class));
+        verify(payrollAdapter, never()).publishApprovedHarvest(any(Harvest.class));
     }
 
     @Test
-    void updateHarvestStatus_ApprovedButHasRejectionReason_ShouldThrowException() {
+    void updateHarvestStatus_InvalidTargetStatus_ThrowsException() {
         updateStatusRequest.setId(harvestId);
-        updateStatusRequest.setStatus(HarvestStatus.APPROVED);
-        updateStatusRequest.setRejectionReason("Good harvest");
+        updateStatusRequest.setStatus(HarvestStatus.PENDING);
 
         Harvest mockHarvest = Harvest.builder()
                 .id(harvestId)
@@ -499,9 +295,10 @@ class HarvestServiceImplTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                 harvestService.updateHarvestStatus(updateStatusRequest, foremanId));
 
-        assertEquals("Rejection reason cannot be provided for an approved harvest.", exception.getMessage());
+        assertEquals("Harvest status can only be updated to APPROVED or REJECTED status.", exception.getMessage());
 
-        verify(harvestRepository, never()).save(any());
+        verify(harvestRepository, never()).save(any(Harvest.class));
+        verify(payrollAdapter, never()).publishApprovedHarvest(any(Harvest.class));
     }
 
     // GENERAL VIEW ------------------------------------------------------------------
