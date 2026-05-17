@@ -2,6 +2,7 @@ package com.mysawit.harvest.adapter;
 
 import com.mysawit.harvest.config.RabbitMQConfig;
 import com.mysawit.harvest.mapper.PayrollMapper;
+import com.mysawit.harvest.dto.PayrollPayload;
 import com.mysawit.harvest.model.Harvest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -15,9 +16,17 @@ public class RabbitMQPayrollAdapter implements PayrollAdapter {
 
     @Override
     public void publishApprovedHarvest(Harvest harvest) {
+        PayrollPayload payload = payrollMapper.mapToPayload(harvest);
+        
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.PAYROLL_QUEUE,
-                payrollMapper.mapToPayload(harvest)
+                payload
+        );
+        
+        rabbitTemplate.convertAndSend(
+                "harvest.exchange",
+                "harvest.approved", 
+                payload
         );
     }
 }
