@@ -105,6 +105,21 @@ class UserReplicaServiceTest {
         verifyNoInteractions(repository);
     }
 
+    @Test
+    void upsertFromRegistration_fallsBackToEmail_whenUsernameNull() {
+        UUID userId = UUID.randomUUID();
+        when(repository.findById(userId)).thenReturn(Optional.empty());
+
+        UserRegisteredEvent event = new UserRegisteredEvent(
+                userId.toString(), "buruh@mail.com", "BURUH", null);
+
+        service.upsertFromRegistration(event);
+
+        ArgumentCaptor<UserReplica> captor = ArgumentCaptor.forClass(UserReplica.class);
+        verify(repository).save(captor.capture());
+        assertEquals("buruh@mail.com", captor.getValue().getName());
+    }
+
     // --- user.assigned upserts ---
 
     @Test

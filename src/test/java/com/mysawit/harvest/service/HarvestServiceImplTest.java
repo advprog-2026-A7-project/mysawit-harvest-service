@@ -1,17 +1,16 @@
 package com.mysawit.harvest.service;
 
 import com.mysawit.harvest.adapter.PayrollAdapter;
-import com.mysawit.harvest.client.IdentityClient;
 import com.mysawit.harvest.dto.*;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.mapper.HarvestMapper;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
-import com.mysawit.harvest.model.UserReplica;
 import com.mysawit.harvest.repository.HarvestRepository;
-import com.mysawit.harvest.repository.UserReplicaRepository;
 
+import com.mysawit.harvest.service.harvester.HarvesterContext;
+import com.mysawit.harvest.service.harvester.HarvesterContextResolver;
 import com.mysawit.harvest.service.validation.HarvestValidationChain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,12 +41,6 @@ class HarvestServiceImplTest {
     private HarvestRepository harvestRepository;
 
     @Mock
-    private IdentityClient identityClient;
-
-    @Mock
-    private UserReplicaRepository userReplicaRepository;
-
-    @Mock
     private PayrollAdapter payrollAdapter;
 
     @InjectMocks
@@ -55,6 +48,9 @@ class HarvestServiceImplTest {
 
     @Mock
     private HarvestValidationChain harvestValidationChain;
+
+    @Mock
+    private HarvesterContextResolver harvesterContextResolver;
 
     private UUID harvesterId;
     private UUID foremanId;
@@ -98,8 +94,8 @@ class HarvestServiceImplTest {
 
         mockUser.setName(harvesterName);
 
-        when(identityClient.getUserById(harvesterId)).thenReturn(mockUser);
-        when(identityClient.getAssignedForemanId(harvesterId)).thenReturn(foremanId);
+        when(harvesterContextResolver.resolve(harvesterId))
+                .thenReturn(new HarvesterContext(harvesterName, foremanId));
         when(harvestRepository.save(any(Harvest.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId);
@@ -110,96 +106,8 @@ class HarvestServiceImplTest {
         assertEquals(foremanId, response.getForemanId());
         assertEquals(HarvestStatus.PENDING, response.getStatus());
 
-        verify(identityClient).getUserById(harvesterId);
-        verify(identityClient).getAssignedForemanId(harvesterId);
+        verify(harvesterContextResolver).resolve(harvesterId);
         verify(harvestRepository).save(any(Harvest.class));
-    }
-
-
-    @Test
-    void logHarvest_ReplicaHit_SkipsIdentityClient() {
-        mockValidationChain();
-
-        UserReplica replica = UserReplica.builder()
-                .id(harvesterId)
-                .name(harvesterName)
-                .role("BURUH")
-                .mandorId(foremanId)
-                .build();
-
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replica));
-        when(harvestRepository.save(any(Harvest.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId);
-
-        assertEquals(harvesterName, response.getHarvesterName());
-        assertEquals(foremanId, response.getForemanId());
-        verifyNoInteractions(identityClient);
-    }
-
-    @Test
-    void logHarvest_ReplicaMissing_FallsBackToIdentityClient() {
-        mockValidationChain();
-
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.empty());
-
-        mockUser.setName(harvesterName);
-        when(identityClient.getUserById(harvesterId)).thenReturn(mockUser);
-        when(identityClient.getAssignedForemanId(harvesterId)).thenReturn(foremanId);
-        when(harvestRepository.save(any(Harvest.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId);
-
-        assertEquals(harvesterName, response.getHarvesterName());
-        assertEquals(foremanId, response.getForemanId());
-        verify(identityClient).getUserById(harvesterId);
-        verify(identityClient).getAssignedForemanId(harvesterId);
-    }
-
-    @Test
-    void logHarvest_ReplicaIncomplete_FallsBackToIdentityClient() {
-        mockValidationChain();
-
-        UserReplica replica = UserReplica.builder()
-                .id(harvesterId)
-                .name(harvesterName)
-                .role("BURUH")
-                .mandorId(null)
-                .build();
-
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replica));
-
-        mockUser.setName(harvesterName);
-        when(identityClient.getUserById(harvesterId)).thenReturn(mockUser);
-        when(identityClient.getAssignedForemanId(harvesterId)).thenReturn(foremanId);
-        when(harvestRepository.save(any(Harvest.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId);
-
-        assertEquals(foremanId, response.getForemanId());
-        verify(identityClient).getAssignedForemanId(harvesterId);
-    }
-
-    @Test
-    void logHarvest_ReplicaWrongRole_FallsBackToIdentityClient() {
-        mockValidationChain();
-
-        UserReplica replica = UserReplica.builder()
-                .id(harvesterId)
-                .name(harvesterName)
-                .role("MANDOR")
-                .mandorId(foremanId)
-                .build();
-
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replica));
-
-        mockUser.setName(harvesterName);
-        when(identityClient.getUserById(harvesterId)).thenReturn(mockUser);
-        when(identityClient.getAssignedForemanId(harvesterId))
-                .thenThrow(new UnauthorizedUserException("User is not a harvester."));
-
-        assertThrows(UnauthorizedUserException.class,
-                () -> harvestService.logHarvest(logRequest, harvesterId));
     }
 
     // HARVESTER VIEW ------------------------------------------------------------------

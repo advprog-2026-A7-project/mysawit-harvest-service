@@ -1,41 +1,32 @@
 package com.mysawit.harvest.service;
 
 import com.mysawit.harvest.adapter.PayrollAdapter;
-import com.mysawit.harvest.client.IdentityClient;
 import com.mysawit.harvest.dto.*;
-import com.mysawit.harvest.exception.AlreadyLoggedHarvestTodayException;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
-import com.mysawit.harvest.exception.HarvestStatusAlreadyUpdatedException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.mapper.HarvestMapper;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
-import com.mysawit.harvest.model.UserReplica;
 import com.mysawit.harvest.repository.HarvestRepository;
-import com.mysawit.harvest.repository.UserReplicaRepository;
 
+import com.mysawit.harvest.service.harvester.HarvesterContext;
+import com.mysawit.harvest.service.harvester.HarvesterContextResolver;
 import com.mysawit.harvest.service.state.HarvestState;
 import com.mysawit.harvest.service.validation.*;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class HarvestServiceImpl implements HarvestService {
-    private static final String HARVESTER_ROLE = "BURUH";
-
     private final HarvestMapper harvestMapper;
     private final HarvestRepository harvestRepository;
-    private final IdentityClient identityClient;
-    private final UserReplicaRepository userReplicaRepository;
+    private final HarvesterContextResolver harvesterContextResolver;
     private final PayrollAdapter payrollAdapter;
     private final HarvestValidationChain harvestValidationChain;
 
@@ -43,7 +34,7 @@ public class HarvestServiceImpl implements HarvestService {
     public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId) {
         harvestValidationChain.validate(request, harvesterId);
 
-        HarvesterContext ctx = resolveHarvesterContext(harvesterId);
+        HarvesterContext ctx = harvesterContextResolver.resolve(harvesterId);
         Harvest harvest = createPendingHarvest(request, harvesterId, ctx);
 
         return harvestMapper.mapToResponse(harvestRepository.save(harvest));
@@ -62,26 +53,6 @@ public class HarvestServiceImpl implements HarvestService {
                 .status(HarvestStatus.PENDING)
                 .build();
     }
-
-    private HarvesterContext resolveHarvesterContext(UUID harvesterId) {
-        UserReplica replica = userReplicaRepository.findById(harvesterId).orElse(null);
-
-        if (replica != null
-                && HARVESTER_ROLE.equals(replica.getRole())
-                && replica.getMandorId() != null
-                && replica.getName() != null) {
-            return new HarvesterContext(replica.getName(), replica.getMandorId());
-        }
-
-        // Fallback while the replica is cold or incomplete.
-        // Once user.registered + user.assigned have flowed for this user,
-        // this branch stops firing and the sync HTTP call disappears.
-        IdentityUserResponse harvester = identityClient.getUserById(harvesterId);
-        UUID foremanId = identityClient.getAssignedForemanId(harvesterId);
-        return new HarvesterContext(harvester.getName(), foremanId);
-    }
-
-    private record HarvesterContext(String harvesterName, UUID foremanId) {}
 
     @Override
     public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId) {
