@@ -26,7 +26,7 @@ public class Harvest {
 
     @NotNull(message = "Plantation ID is required")
     @Column(name = "plantation_id", nullable = false)
-    private UUID plantationId;
+    private String plantationId; // Code from plantation
 
     @NotNull(message = "Harvester ID is required")
     @Column(name = "harvester_id", nullable = false)

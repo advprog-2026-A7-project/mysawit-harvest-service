@@ -11,7 +11,7 @@ import java.util.UUID;
 @Data
 public class LogHarvestRequest {
     @NotNull(message = "Plantation ID is required")
-    private UUID plantationId;
+    private String plantationId;
 
     @NotNull(message = "Weight is required")
     @Positive(message = "Weight must be positive")

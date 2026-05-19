@@ -75,7 +75,7 @@ class HarvestControllerTest {
         when(mockForeman.isForeman()).thenReturn(true);
 
         validRequest = new LogHarvestRequest();
-        validRequest.setPlantationId(UUID.randomUUID());
+        validRequest.setPlantationId("PLT-12345678");
         validRequest.setWeight(777.0);
         validRequest.setNews("Successful harvest");
 

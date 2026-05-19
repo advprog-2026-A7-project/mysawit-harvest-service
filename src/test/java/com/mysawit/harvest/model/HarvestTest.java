@@ -16,7 +16,7 @@ class HarvestTest {
         Harvest harvest = Harvest.builder()
                 .harvesterId(java.util.UUID.randomUUID())
                 .foremanId(java.util.UUID.randomUUID())
-                .plantationId(java.util.UUID.randomUUID())
+                .plantationId("PLT-12345678")
                 .weight(300.5)
                 .news("Successful harvest")
                 .build();
