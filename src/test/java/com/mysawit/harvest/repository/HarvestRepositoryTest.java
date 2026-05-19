@@ -25,6 +25,7 @@ class HarvestRepositoryTest {
     private UUID foremanId;
     private Harvest harvest1;
     private Harvest harvest2;
+    private String plantationId;
 
     private List<Harvest> findHarvesterHarvests(UUID id, HarvestStatus status, LocalDateTime start, LocalDateTime end) {
         return harvestRepository.findAllByHarvesterIdAndDateAndStatus(
@@ -48,7 +49,7 @@ class HarvestRepositoryTest {
     void setUp() {
         harvesterId = UUID.randomUUID();
         foremanId = UUID.randomUUID();
-        UUID plantationId = UUID.randomUUID();
+        plantationId = "PLT-12345678";
 
         harvest1 = Harvest.builder()
                 .harvesterId(harvesterId)

@@ -54,7 +54,7 @@ class HarvestServiceImplTest {
 
     private UUID harvesterId;
     private UUID foremanId;
-    private UUID plantationId;
+    private String plantationId;
     private UUID harvestId;
     private String harvesterName;
 
@@ -67,7 +67,7 @@ class HarvestServiceImplTest {
     void setUp() {
         harvesterId = UUID.randomUUID();
         foremanId = UUID.randomUUID();
-        plantationId = UUID.randomUUID();
+        plantationId = "PLT-12345678";
         harvestId = UUID.randomUUID();
         harvesterName = "Strawberry Shortcake";
 

@@ -16,7 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class HarvestResponse {
     private UUID id;
-    private UUID plantationId;
+    private String plantationId;
     private UUID harvesterId;
     private UUID foremanId;
     private String harvesterName;

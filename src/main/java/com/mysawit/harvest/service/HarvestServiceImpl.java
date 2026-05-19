@@ -42,7 +42,7 @@ public class HarvestServiceImpl implements HarvestService {
 
     private Harvest createPendingHarvest(LogHarvestRequest request, UUID harvesterId, HarvesterContext ctx) {
         return Harvest.builder()
-                .plantationId(request.getPlantationId())
+                .plantationId(String.valueOf(request.getPlantationId()))
                 .harvesterId(harvesterId)
                 .foremanId(ctx.foremanId())
                 .harvesterName(ctx.harvesterName())

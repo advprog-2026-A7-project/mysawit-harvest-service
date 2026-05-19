@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class LogHarvestRequestTest {
     private Validator validator;
+    private String plantationId = "PLT-12345678";
 
     @BeforeEach
     void setUp() {
@@ -35,7 +36,7 @@ class LogHarvestRequestTest {
     @Test
     void validHarvest() {
         LogHarvestRequest request = new LogHarvestRequest();
-        request.setPlantationId(UUID.randomUUID());
+        request.setPlantationId(plantationId);
         request.setWeight(300.5);
         request.setNews("Successful harvest");
 
@@ -58,7 +59,7 @@ class LogHarvestRequestTest {
     @Test
     void nullWeight() {
         LogHarvestRequest request = new LogHarvestRequest();
-        request.setPlantationId(UUID.randomUUID());
+        request.setPlantationId(plantationId);
         request.setWeight(null);
         request.setNews("Successful harvest");
 
@@ -70,7 +71,7 @@ class LogHarvestRequestTest {
     @Test
     void negativeWeight() {
         LogHarvestRequest request = new LogHarvestRequest();
-        request.setPlantationId(UUID.randomUUID());
+        request.setPlantationId(plantationId);
         request.setWeight(-300.5);
         request.setNews("Successful harvest");
 
@@ -82,7 +83,7 @@ class LogHarvestRequestTest {
     @Test
     void zeroWeight() {
         LogHarvestRequest request = new LogHarvestRequest();
-        request.setPlantationId(UUID.randomUUID());
+        request.setPlantationId(plantationId);
         request.setWeight(0.0);
         request.setNews("Successful harvest");
 
@@ -94,7 +95,7 @@ class LogHarvestRequestTest {
     @Test
     void nullNews() {
         LogHarvestRequest request = new LogHarvestRequest();
-        request.setPlantationId(UUID.randomUUID());
+        request.setPlantationId(plantationId);
         request.setWeight(300.5);
         request.setNews(null);
 
@@ -106,7 +107,7 @@ class LogHarvestRequestTest {
     @Test
     void nullPhotos() {
         LogHarvestRequest request = new LogHarvestRequest();
-        request.setPlantationId(UUID.randomUUID());
+        request.setPlantationId(plantationId);
         request.setWeight(300.5);
         request.setNews("Successful harvest");
         request.setPhotos(null);
