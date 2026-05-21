@@ -32,7 +32,6 @@ public class GlobalExceptionHandler {
         org.springframework.validation.FieldError fieldError = ex.getBindingResult().getFieldError();
         String message = fieldError != null ? fieldError.getDefaultMessage() : "Validation error";
 
-        // Check if the error is a type mismatch (like invalid enum value "TES")
         if (fieldError != null && fieldError.getCode() != null && fieldError.getCode().contains("typeMismatch")) {
             message = "Invalid value provided for field '" + fieldError.getField() + "'.";
         }

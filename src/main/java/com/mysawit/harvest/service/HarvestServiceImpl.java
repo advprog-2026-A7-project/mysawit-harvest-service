@@ -72,13 +72,10 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID foremanId) {
-        validateDateRange(request.getStartDate(), request.getEndDate());
-
         List<Harvest> harvestList = harvestRepository.findAllByHarvesterNameAndDate(
                 foremanId,
                 request.getHarvesterName(),
-                request.getStartDate(),
-                request.getEndDate()
+                request.getDate()
         );
 
         return harvestList.stream()
