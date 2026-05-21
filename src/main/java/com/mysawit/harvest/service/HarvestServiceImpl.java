@@ -1,7 +1,7 @@
 package com.mysawit.harvest.service;
 
-import com.mysawit.harvest.adapter.PayrollAdapter;
 import com.mysawit.harvest.dto.*;
+import com.mysawit.harvest.event.HarvestPayrollEventPublisher;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.mapper.HarvestMapper;
@@ -9,8 +9,7 @@ import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.repository.HarvestRepository;
 
-import com.mysawit.harvest.service.harvester.HarvesterContext;
-import com.mysawit.harvest.service.harvester.HarvesterContextResolver;
+import com.mysawit.harvest.dto.HarvesterContext;
 import com.mysawit.harvest.service.state.HarvestState;
 import com.mysawit.harvest.service.validation.*;
 import lombok.RequiredArgsConstructor;
@@ -26,15 +25,15 @@ import java.util.UUID;
 public class HarvestServiceImpl implements HarvestService {
     private final HarvestMapper harvestMapper;
     private final HarvestRepository harvestRepository;
-    private final HarvesterContextResolver harvesterContextResolver;
-    private final PayrollAdapter payrollAdapter;
+    private final HarvesterContextService harvesterContextService;
+    private final HarvestPayrollEventPublisher harvestPayrollEventPublisher;
     private final HarvestValidationChain harvestValidationChain;
 
     @Override
     public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId) {
         harvestValidationChain.validate(request, harvesterId);
 
-        HarvesterContext ctx = harvesterContextResolver.resolve(harvesterId);
+        HarvesterContext ctx = harvesterContextService.resolve(harvesterId);
         Harvest harvest = createPendingHarvest(request, harvesterId, ctx);
 
         return harvestMapper.mapToResponse(harvestRepository.save(harvest));
@@ -56,6 +55,8 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId) {
+        validateDateRange(request.getStartDate(), request.getEndDate());
+
         List<Harvest> harvestList = harvestRepository.findAllByHarvesterIdAndDateAndStatus(
                 harvesterId,
                 request.getStatus(),
@@ -73,8 +74,7 @@ public class HarvestServiceImpl implements HarvestService {
         List<Harvest> harvestList = harvestRepository.findAllByHarvesterNameAndDate(
                 foremanId,
                 request.getHarvesterName(),
-                request.getStartDate(),
-                request.getEndDate()
+                request.getDate()
         );
 
         return harvestList.stream()
@@ -122,7 +122,7 @@ public class HarvestServiceImpl implements HarvestService {
 
         Harvest savedHarvest = harvestRepository.save(updatedHarvest);
         if (savedHarvest.getStatus() == HarvestStatus.APPROVED) {
-            payrollAdapter.publishApprovedHarvest(savedHarvest);
+            harvestPayrollEventPublisher.publishApprovedHarvest(savedHarvest);
         }
 
         return harvestMapper.mapToResponse(savedHarvest);
@@ -131,6 +131,12 @@ public class HarvestServiceImpl implements HarvestService {
     private void validateAuthorizedToUpdateHarvestStatus(Harvest harvest, UUID foremanId) {
         if (!harvest.getForemanId().equals(foremanId)) {
             throw new UnauthorizedUserException("You are not authorized to update this log.");
+        }
+    }
+
+    private void validateDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("End Date must not be before Start Date");
         }
     }
 }

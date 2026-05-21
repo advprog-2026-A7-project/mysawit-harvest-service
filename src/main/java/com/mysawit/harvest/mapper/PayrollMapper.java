@@ -1,6 +1,6 @@
 package com.mysawit.harvest.mapper;
 
-import com.mysawit.harvest.dto.PayrollPayload;
+import com.mysawit.harvest.event.HarvestPayrollEvent;
 import com.mysawit.harvest.model.Harvest;
 import org.springframework.stereotype.Component;
 
@@ -10,8 +10,8 @@ import java.util.UUID;
 
 @Component
 public class PayrollMapper {
-    public PayrollPayload mapToPayload(Harvest harvest) {
-        return PayrollPayload.builder()
+    public HarvestPayrollEvent mapToPayload(Harvest harvest) {
+        return HarvestPayrollEvent.builder()
                 .eventId(UUID.randomUUID().toString())
                 .harvestId(harvest.getId())
                 .harvesterId(harvest.getHarvesterId())

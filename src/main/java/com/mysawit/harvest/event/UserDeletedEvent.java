@@ -11,16 +11,9 @@ import java.time.Instant;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserAssignedEvent {
+public class UserDeletedEvent {
     private String userId;
-    private String mandorId;
-    private String mandorName;
-    private AssignmentAction action;
+    private String role;
+    private String previousMandorId;
     private Instant occurredAt;
-
-    public enum AssignmentAction {
-        ASSIGNED,
-        UNASSIGNED,
-        REASSIGNED
-    }
 }

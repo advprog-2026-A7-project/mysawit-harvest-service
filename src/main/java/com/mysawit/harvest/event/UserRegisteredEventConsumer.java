@@ -17,7 +17,7 @@ public class UserRegisteredEventConsumer {
 
     @RabbitListener(queues = "${harvest.rabbitmq.queues.user-registered:harvest.user.registered.queue}")
     public void onUserRegistered(UserRegisteredEvent event) {
-        log.debug("Received user.registered userId={}", event.getUserId());
+        log.info("Received user.registered userId={}", event.getUserId());
         userReplicaService.upsertFromRegistration(event);
     }
 }

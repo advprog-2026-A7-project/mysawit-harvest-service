@@ -1,4 +1,4 @@
-package com.mysawit.harvest.dto;
+package com.mysawit.harvest.event;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @Getter
 @Builder
-public class PayrollPayload {
+public class HarvestPayrollEvent {
     private String eventId;      
     private UUID harvestId;
     private UUID harvesterId;

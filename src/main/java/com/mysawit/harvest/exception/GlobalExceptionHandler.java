@@ -27,11 +27,42 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleValidationError(MethodArgumentNotValidException ex) {
+    @ExceptionHandler(org.springframework.validation.BindException.class)
+    public ResponseEntity<?> handleValidationError(org.springframework.validation.BindException ex) {
+        org.springframework.validation.FieldError fieldError = ex.getBindingResult().getFieldError();
+        String message = fieldError != null ? fieldError.getDefaultMessage() : "Validation error";
+
+        if (fieldError != null && fieldError.getCode() != null && fieldError.getCode().contains("typeMismatch")) {
+            message = "Invalid value provided for field '" + fieldError.getField() + "'.";
+        }
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 "error", "VALIDATION_ERROR",
-                "message", ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage()
+                "message", message
+        ));
+    }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<?> handleTypeMismatch(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "error", "INVALID_PARAMETER",
+                "message", "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'."
+        ));
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<?> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        String message = "Malformed JSON request or invalid data type provided.";
+
+        if (ex.getCause() instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException formatEx) {
+            if (formatEx.getTargetType() != null && formatEx.getTargetType().isEnum()) {
+                message = "Invalid value provided for field '" + formatEx.getPath().getFirst().getFieldName() + "'.";
+            }
+        }
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "error", "INVALID_REQUEST_BODY",
+                "message", message
         ));
     }
 

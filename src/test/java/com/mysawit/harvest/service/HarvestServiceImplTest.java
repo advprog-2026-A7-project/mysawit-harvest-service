@@ -1,7 +1,7 @@
 package com.mysawit.harvest.service;
 
-import com.mysawit.harvest.adapter.PayrollAdapter;
 import com.mysawit.harvest.dto.*;
+import com.mysawit.harvest.event.HarvestPayrollEventPublisher;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.mapper.HarvestMapper;
@@ -9,8 +9,7 @@ import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.repository.HarvestRepository;
 
-import com.mysawit.harvest.service.harvester.HarvesterContext;
-import com.mysawit.harvest.service.harvester.HarvesterContextResolver;
+import com.mysawit.harvest.dto.HarvesterContext;
 import com.mysawit.harvest.service.validation.HarvestValidationChain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -41,16 +41,16 @@ class HarvestServiceImplTest {
     private HarvestRepository harvestRepository;
 
     @Mock
-    private PayrollAdapter payrollAdapter;
-
-    @InjectMocks
-    private HarvestServiceImpl harvestService;
+    private HarvestPayrollEventPublisher harvestPayrollEventPublisher;
 
     @Mock
     private HarvestValidationChain harvestValidationChain;
 
     @Mock
-    private HarvesterContextResolver harvesterContextResolver;
+    private HarvesterContextService harvesterContextService;
+
+    @InjectMocks
+    private HarvestServiceImpl harvestService;
 
     private UUID harvesterId;
     private UUID foremanId;
@@ -61,7 +61,6 @@ class HarvestServiceImplTest {
     private LogHarvestRequest logRequest;
     private HarvesterViewHarvestRequest harvesterViewRequest;
     private UpdateHarvestStatusRequest updateStatusRequest;
-    private IdentityUserResponse mockUser;
 
     @BeforeEach
     void setUp() {
@@ -79,8 +78,6 @@ class HarvestServiceImplTest {
         harvesterViewRequest = new HarvesterViewHarvestRequest();
 
         updateStatusRequest = new UpdateHarvestStatusRequest();
-
-        mockUser = new IdentityUserResponse();
     }
 
     // HARVEST LOG ------------------------------------------------------------------
@@ -92,9 +89,7 @@ class HarvestServiceImplTest {
     void logHarvest_Success() {
         mockValidationChain();
 
-        mockUser.setName(harvesterName);
-
-        when(harvesterContextResolver.resolve(harvesterId))
+        when(harvesterContextService.resolve(harvesterId))
                 .thenReturn(new HarvesterContext(harvesterName, foremanId));
         when(harvestRepository.save(any(Harvest.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -106,7 +101,7 @@ class HarvestServiceImplTest {
         assertEquals(foremanId, response.getForemanId());
         assertEquals(HarvestStatus.PENDING, response.getStatus());
 
-        verify(harvesterContextResolver).resolve(harvesterId);
+        verify(harvesterContextService).resolve(harvesterId);
         verify(harvestRepository).save(any(Harvest.class));
     }
 
@@ -157,18 +152,17 @@ class HarvestServiceImplTest {
     void foremanViewHarvest_Success() {
         ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
         req.setHarvesterName("Strawberry Shortcake");
-        req.setStartDate(LocalDateTime.now().minusDays(7));
-        req.setEndDate(LocalDateTime.now());
+        req.setDate(LocalDate.now());
 
         when(harvestRepository.findAllByHarvesterNameAndDate(
-                eq(foremanId), any(), any(), any()))
+                eq(foremanId), any(), any()))
                 .thenReturn(List.of(new Harvest(), new Harvest()));
 
         List<HarvestResponse> responses = harvestService.foremanViewHarvest(req, foremanId);
 
         assertEquals(2, responses.size());
         verify(harvestRepository).findAllByHarvesterNameAndDate(
-                eq(foremanId), eq("Strawberry Shortcake"), any(), any());
+                eq(foremanId), eq("Strawberry Shortcake"), any());
     }
 
     // FOREMAN UPDATE STATUS ------------------------------------------------------------------
@@ -195,7 +189,7 @@ class HarvestServiceImplTest {
         assertEquals(HarvestStatus.APPROVED, response.getStatus());
         verify(harvestRepository).save(any(Harvest.class));
 
-        verify(payrollAdapter, times(1)).publishApprovedHarvest(any(Harvest.class));
+        verify(harvestPayrollEventPublisher, times(1)).publishApprovedHarvest(any(Harvest.class));
     }
 
     @Test
@@ -276,7 +270,7 @@ class HarvestServiceImplTest {
 
         harvestService.updateHarvestStatus(request, foremanId);
 
-        verify(payrollAdapter, never()).publishApprovedHarvest(any(Harvest.class));
+        verify(harvestPayrollEventPublisher, never()).publishApprovedHarvest(any(Harvest.class));
     }
 
     @Test
@@ -298,7 +292,7 @@ class HarvestServiceImplTest {
         assertEquals("Harvest status can only be updated to APPROVED or REJECTED status.", exception.getMessage());
 
         verify(harvestRepository, never()).save(any(Harvest.class));
-        verify(payrollAdapter, never()).publishApprovedHarvest(any(Harvest.class));
+        verify(harvestPayrollEventPublisher, never()).publishApprovedHarvest(any(Harvest.class));
     }
 
     // GENERAL VIEW ------------------------------------------------------------------
@@ -378,5 +372,87 @@ class HarvestServiceImplTest {
 
         assertThrows(UnauthorizedUserException.class, () ->
                 harvestService.getHarvestDetail(harvestId, null, intruderForemanId));
+    }
+
+    @Test
+    void harvesterViewHarvest_ThrowsIllegalArgumentException_WhenEndDateIsBeforeStartDate() {
+        HarvesterViewHarvestRequest invalidDateRequest = new HarvesterViewHarvestRequest();
+
+        LocalDateTime start = LocalDateTime.of(2026, 5, 20, 10, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 5, 19, 10, 0);
+
+        invalidDateRequest.setStartDate(start);
+        invalidDateRequest.setEndDate(end);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                harvestService.harvesterViewHarvest(invalidDateRequest, harvesterId));
+
+        assertEquals("End Date must not be before Start Date", exception.getMessage());
+        verifyNoInteractions(harvestRepository);
+    }
+
+    @Test
+    void harvesterViewHarvest_PassesValidation_WhenDatesAreValidOrNull() {
+        HarvesterViewHarvestRequest validDateRequest = new HarvesterViewHarvestRequest();
+        validDateRequest.setStartDate(LocalDateTime.now());
+        validDateRequest.setEndDate(null);
+
+        when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any()))
+                .thenReturn(List.of());
+
+        assertDoesNotThrow(() ->
+                harvestService.harvesterViewHarvest(validDateRequest, harvesterId));
+    }
+
+    // BRANCH COVERAGE FOR DATE RANGE VALIDATION ------------------------------------
+
+    @Test
+    void harvesterViewHarvest_DateValidation_FalseWhenStartDateIsNull() {
+        HarvesterViewHarvestRequest request = new HarvesterViewHarvestRequest();
+        request.setStartDate(null); // 1. startDate null
+        request.setEndDate(LocalDateTime.now());
+
+        when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any()))
+                .thenReturn(List.of());
+
+        // Memastikan aman dan mengevaluasi branch 'startDate != null' sebagai false
+        assertDoesNotThrow(() -> harvestService.harvesterViewHarvest(request, harvesterId));
+    }
+
+    @Test
+    void harvesterViewHarvest_DateValidation_FalseWhenEndDateIsNull() {
+        HarvesterViewHarvestRequest request = new HarvesterViewHarvestRequest();
+        request.setStartDate(LocalDateTime.now());
+        request.setEndDate(null); // 2. endDate null
+
+        when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any()))
+                .thenReturn(List.of());
+
+        // Memastikan aman dan mengevaluasi branch 'endDate != null' sebagai false
+        assertDoesNotThrow(() -> harvestService.harvesterViewHarvest(request, harvesterId));
+    }
+
+    @Test
+    void harvesterViewHarvest_DateValidation_FalseWhenBothDatesAreNull() {
+        HarvesterViewHarvestRequest request = new HarvesterViewHarvestRequest();
+        request.setStartDate(null);
+        request.setEndDate(null);
+
+        when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any()))
+                .thenReturn(List.of());
+
+        assertDoesNotThrow(() -> harvestService.harvesterViewHarvest(request, harvesterId));
+    }
+
+    @Test
+    void harvesterViewHarvest_DateValidation_FalseWhenEndDateIsAfterStartDate() {
+        HarvesterViewHarvestRequest request = new HarvesterViewHarvestRequest();
+        request.setStartDate(LocalDateTime.of(2026, 5, 20, 8, 0));
+        request.setEndDate(LocalDateTime.of(2026, 5, 20, 17, 0));
+
+        when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any()))
+                .thenReturn(List.of());
+
+        assertDoesNotThrow(() -> harvestService.harvesterViewHarvest(request, harvesterId));
     }
 }
