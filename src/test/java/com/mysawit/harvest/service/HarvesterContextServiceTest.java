@@ -30,7 +30,7 @@ class HarvesterContextServiceTest {
     void resolve_ValidHarvester_ReturnsContext() {
         UserReplica replica = UserReplica.builder()
                 .id(harvesterId)
-                .name("Budi")
+                .name("Strawberry")
                 .role("BURUH")
                 .mandorId(mandorId)
                 .build();
@@ -40,7 +40,7 @@ class HarvesterContextServiceTest {
         HarvesterContext context = service.resolve(harvesterId);
 
         assertNotNull(context);
-        assertEquals("Budi", context.harvesterName());
+        assertEquals("Strawberry", context.harvesterName());
         assertEquals(mandorId, context.foremanId());
     }
 
@@ -52,14 +52,14 @@ class HarvesterContextServiceTest {
             service.resolve(harvesterId);
         });
 
-        assertEquals("Data buruh tidak ditemukan.", exception.getMessage());
+        assertEquals("Harvester registration data not found.", exception.getMessage());
     }
 
     @Test
     void resolve_WrongRole_ThrowsUnauthorizedUserException() {
         UserReplica replica = UserReplica.builder()
                 .id(harvesterId)
-                .name("Budi")
+                .name("Strawberry")
                 .role("MANDOR")
                 .mandorId(mandorId)
                 .build();
@@ -70,14 +70,14 @@ class HarvesterContextServiceTest {
             service.resolve(harvesterId);
         });
 
-        assertEquals("Profil buruh tidak valid atau belum lengkap.", exception.getMessage());
+        assertEquals("User is not a harvester.", exception.getMessage());
     }
 
     @Test
     void resolve_MandorIdNull_ThrowsUnauthorizedUserException() {
         UserReplica replica = UserReplica.builder()
                 .id(harvesterId)
-                .name("Budi")
+                .name("Strawberry")
                 .role("BURUH")
                 .mandorId(null)
                 .build();
@@ -88,24 +88,6 @@ class HarvesterContextServiceTest {
             service.resolve(harvesterId);
         });
 
-        assertEquals("Profil buruh tidak valid atau belum lengkap.", exception.getMessage());
-    }
-
-    @Test
-    void resolve_NameNull_ThrowsUnauthorizedUserException() {
-        UserReplica replica = UserReplica.builder()
-                .id(harvesterId)
-                .name(null)
-                .role("BURUH")
-                .mandorId(mandorId)
-                .build();
-
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replica));
-
-        UnauthorizedUserException exception = assertThrows(UnauthorizedUserException.class, () -> {
-            service.resolve(harvesterId);
-        });
-
-        assertEquals("Profil buruh tidak valid atau belum lengkap.", exception.getMessage());
+        assertEquals("Harvester is not assigned to any foreman.", exception.getMessage());
     }
 }

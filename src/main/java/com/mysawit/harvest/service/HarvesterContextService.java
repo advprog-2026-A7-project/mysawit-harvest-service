@@ -16,10 +16,14 @@ public class HarvesterContextService {
 
     public HarvesterContext resolve(UUID harvesterId) {
         UserReplica replica = userReplicaRepository.findById(harvesterId)
-                .orElseThrow(() -> new UnauthorizedUserException("Data buruh tidak ditemukan."));
+                .orElseThrow(() -> new UnauthorizedUserException("Harvester registration data not found."));
 
-        if (!HARVESTER_ROLE.equals(replica.getRole()) || replica.getMandorId() == null || replica.getName() == null) {
-            throw new UnauthorizedUserException("Profil buruh tidak valid atau belum lengkap.");
+        if (!HARVESTER_ROLE.equals(replica.getRole())) {
+            throw new UnauthorizedUserException("User is not a harvester.");
+        }
+
+        if (replica.getMandorId() == null) {
+            throw new UnauthorizedUserException("Harvester is not assigned to any foreman.");
         }
 
         return new HarvesterContext(replica.getName(), replica.getMandorId());
