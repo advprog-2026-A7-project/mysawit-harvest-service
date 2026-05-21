@@ -17,7 +17,9 @@ public interface HarvestRepository extends JpaRepository<Harvest, UUID> {
     // Harvester view
     @Query("SELECT h FROM Harvest h WHERE h.harvesterId = :harvesterId " +
             "AND (:status IS NULL OR h.status = :status) " +
-            "AND h.harvestDate BETWEEN :start AND :end")
+            "AND (cast(:start as timestamp) IS NULL OR h.harvestDate >= :start) " +
+            "AND (cast(:end as timestamp) IS NULL OR h.harvestDate <= :end) " +
+            "ORDER BY h.harvestDate DESC")
     List<Harvest> findAllByHarvesterIdAndDateAndStatus(
             @Param("harvesterId") UUID harvesterId,
             @Param("status") HarvestStatus status,
@@ -28,8 +30,8 @@ public interface HarvestRepository extends JpaRepository<Harvest, UUID> {
     // Foreman view
     @Query("SELECT h FROM Harvest h WHERE h.foremanId = :foremanId " +
             "AND (:name IS NULL OR LOWER(h.harvesterName) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-            "AND (:start IS NULL OR h.harvestDate >= :start) " +
-            "AND (:end IS NULL OR h.harvestDate <= :end) " +
+            "AND (cast(:start as timestamp) IS NULL OR h.harvestDate >= :start) " +
+            "AND (cast(:end as timestamp) IS NULL OR h.harvestDate <= :end) " +
             "ORDER BY h.harvestDate DESC")
     List<Harvest> findAllByHarvesterNameAndDate(
             @Param("foremanId") UUID foremanId,

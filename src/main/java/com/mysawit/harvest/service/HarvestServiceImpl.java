@@ -56,6 +56,8 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public List<HarvestResponse> harvesterViewHarvest(HarvesterViewHarvestRequest request, UUID harvesterId) {
+        validateDateRange(request.getStartDate(), request.getEndDate());
+
         List<Harvest> harvestList = harvestRepository.findAllByHarvesterIdAndDateAndStatus(
                 harvesterId,
                 request.getStatus(),
@@ -70,6 +72,8 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID foremanId) {
+        validateDateRange(request.getStartDate(), request.getEndDate());
+
         List<Harvest> harvestList = harvestRepository.findAllByHarvesterNameAndDate(
                 foremanId,
                 request.getHarvesterName(),
@@ -131,6 +135,12 @@ public class HarvestServiceImpl implements HarvestService {
     private void validateAuthorizedToUpdateHarvestStatus(Harvest harvest, UUID foremanId) {
         if (!harvest.getForemanId().equals(foremanId)) {
             throw new UnauthorizedUserException("You are not authorized to update this log.");
+        }
+    }
+
+    private void validateDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("End Date must not be before Start Date");
         }
     }
 }

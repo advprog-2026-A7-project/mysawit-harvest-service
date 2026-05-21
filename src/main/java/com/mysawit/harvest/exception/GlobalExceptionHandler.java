@@ -27,11 +27,27 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleValidationError(MethodArgumentNotValidException ex) {
+    @ExceptionHandler(org.springframework.validation.BindException.class)
+    public ResponseEntity<?> handleValidationError(org.springframework.validation.BindException ex) {
+        org.springframework.validation.FieldError fieldError = ex.getBindingResult().getFieldError();
+        String message = fieldError != null ? fieldError.getDefaultMessage() : "Validation error";
+
+        // Check if the error is a type mismatch (like invalid enum value "TES")
+        if (fieldError != null && fieldError.getCode() != null && fieldError.getCode().contains("typeMismatch")) {
+            message = "Invalid value provided for field '" + fieldError.getField() + "'.";
+        }
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 "error", "VALIDATION_ERROR",
-                "message", ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage()
+                "message", message
+        ));
+    }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<?> handleTypeMismatch(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "error", "INVALID_PARAMETER",
+                "message", "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'."
         ));
     }
 
