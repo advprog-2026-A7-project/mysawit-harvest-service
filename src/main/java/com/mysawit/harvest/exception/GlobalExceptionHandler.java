@@ -50,6 +50,22 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<?> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        String message = "Malformed JSON request or invalid data type provided.";
+
+        if (ex.getCause() instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException formatEx) {
+            if (formatEx.getTargetType() != null && formatEx.getTargetType().isEnum()) {
+                message = "Invalid value provided for field '" + formatEx.getPath().get(0).getFieldName() + "'.";
+            }
+        }
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "error", "INVALID_REQUEST_BODY",
+                "message", message
+        ));
+    }
+
     @ExceptionHandler(HarvestStatusAlreadyUpdatedException.class)
     public ResponseEntity<?> handleStatusAlreadyUpdated(HarvestStatusAlreadyUpdatedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
