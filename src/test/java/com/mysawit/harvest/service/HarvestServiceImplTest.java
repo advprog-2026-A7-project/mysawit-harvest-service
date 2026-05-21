@@ -61,7 +61,6 @@ class HarvestServiceImplTest {
     private LogHarvestRequest logRequest;
     private HarvesterViewHarvestRequest harvesterViewRequest;
     private UpdateHarvestStatusRequest updateStatusRequest;
-    private IdentityUserResponse mockUser;
 
     @BeforeEach
     void setUp() {
@@ -79,8 +78,6 @@ class HarvestServiceImplTest {
         harvesterViewRequest = new HarvesterViewHarvestRequest();
 
         updateStatusRequest = new UpdateHarvestStatusRequest();
-
-        mockUser = new IdentityUserResponse();
     }
 
     // HARVEST LOG ------------------------------------------------------------------
@@ -91,8 +88,6 @@ class HarvestServiceImplTest {
     @Test
     void logHarvest_Success() {
         mockValidationChain();
-
-        mockUser.setName(harvesterName);
 
         when(harvesterContextService.resolve(harvesterId))
                 .thenReturn(new HarvesterContext(harvesterName, foremanId));
