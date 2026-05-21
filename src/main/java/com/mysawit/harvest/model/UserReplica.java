@@ -32,4 +32,7 @@ public class UserReplica {
 
     @Column(name = "mandor_id")
     private UUID mandorId;
+
+    @Column(name = "plantation_id")
+    private String plantationId;
 }

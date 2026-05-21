@@ -13,8 +13,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableRabbit
 public class RabbitMQConfig {
+    // Harvest
     public static final String PAYROLL_QUEUE = "payroll_queue";
 
+    // Identity
     public static final String USER_EXCHANGE = "user.exchange";
     public static final String USER_REGISTERED_ROUTING_KEY = "user.registered";
     public static final String USER_ASSIGNED_ROUTING_KEY = "user.assignment.*";
@@ -22,6 +24,11 @@ public class RabbitMQConfig {
     public static final String HARVEST_USER_REGISTERED_QUEUE = "harvest.user.registered.queue";
     public static final String HARVEST_USER_ASSIGNED_QUEUE = "harvest.user.assigned.queue";
     public static final String HARVEST_USER_DELETED_QUEUE = "harvest.user.deleted.queue";
+
+    // Plantation
+    public static final String PLANTATION_EXCHANGE = "plantation.exchange";
+    public static final String PLANTATION_MANDOR_ASSIGNED_ROUTING_KEY = "plantation.assignment.*";
+    public static final String HARVEST_MANDOR_PLANTATION_ASSIGNED_QUEUE = "harvest.mandor.plantation.assigned.queue";
 
     public static final String HARVEST_EXCHANGE = "harvest.exchange";
 
@@ -71,6 +78,21 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public TopicExchange plantationExchange() {
+        return new TopicExchange(PLANTATION_EXCHANGE, true, false);
+    }
+
+    @Bean
+    public Queue harvestMandorPlantationAssignedQueue() {
+        return new Queue(HARVEST_MANDOR_PLANTATION_ASSIGNED_QUEUE, true);
+    }
+
+    @Bean
+    public Binding harvestMandorPlantationAssignedBinding(Queue harvestMandorPlantationAssignedQueue, TopicExchange plantationExchange) {
+        return BindingBuilder.bind(harvestMandorPlantationAssignedQueue).to(plantationExchange).with(PLANTATION_MANDOR_ASSIGNED_ROUTING_KEY);
+    }
+
+    @Bean
     public MessageConverter jsonMessageConverter() {
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();
         org.springframework.amqp.support.converter.DefaultClassMapper classMapper = new org.springframework.amqp.support.converter.DefaultClassMapper();
@@ -80,6 +102,7 @@ public class RabbitMQConfig {
         idClassMapping.put("com.mysawit.identity.event.UserAssignedEvent", com.mysawit.harvest.event.UserAssignedEvent.class);
         idClassMapping.put("com.mysawit.identity.event.UserRegisteredEvent", com.mysawit.harvest.event.UserRegisteredEvent.class);
         idClassMapping.put("com.mysawit.identity.event.UserDeletedEvent", com.mysawit.harvest.event.UserDeletedEvent.class);
+        idClassMapping.put("com.mysawit.plantation.event.MandorPlantationAssignedEvent", com.mysawit.harvest.event.MandorPlantationAssignedEvent.class);
         classMapper.setIdClassMapping(idClassMapping);
         
         converter.setClassMapper(classMapper);
