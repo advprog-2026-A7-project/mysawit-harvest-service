@@ -1,6 +1,5 @@
 package com.mysawit.harvest.service.validation;
 
-import com.mysawit.harvest.client.IdentityClient;
 import com.mysawit.harvest.dto.LogHarvestRequest;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.UserReplica;
@@ -15,24 +14,23 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class HarvesterAssignedHandlerTest {
-
     private UserReplicaRepository userReplicaRepository;
-    private IdentityClient identityClient;
     private HarvesterAssignedHandler handler;
     private UUID harvesterId;
     private UUID foremanId;
+    private LogHarvestRequest request;
 
     @BeforeEach
     void setUp() {
         userReplicaRepository = mock(UserReplicaRepository.class);
-        identityClient = mock(IdentityClient.class);
-        handler = new HarvesterAssignedHandler(userReplicaRepository, identityClient);
+        handler = new HarvesterAssignedHandler(userReplicaRepository);
         harvesterId = UUID.randomUUID();
         foremanId = UUID.randomUUID();
+        request = new LogHarvestRequest();
     }
 
     @Test
-    void handle_passesFromReplica_whenReplicaIsAssignedHarvester() {
+    void handle_passes_whenReplicaIsAssignedHarvester() {
         UserReplica replica = UserReplica.builder()
                 .id(harvesterId)
                 .role("BURUH")
@@ -41,74 +39,55 @@ class HarvesterAssignedHandlerTest {
 
         when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replica));
 
-        assertDoesNotThrow(() -> handler.handle(new LogHarvestRequest(), harvesterId));
-        verifyNoInteractions(identityClient);
-    }
-
-    @Test
-    void handle_fallsBackToIdentity_whenReplicaMissing() {
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.empty());
-        when(identityClient.getAssignedForemanId(harvesterId)).thenReturn(foremanId);
-
-        assertDoesNotThrow(() -> handler.handle(new LogHarvestRequest(), harvesterId));
-        verify(identityClient).getAssignedForemanId(harvesterId);
-    }
-
-    @Test
-    void handle_throwsException_whenIdentitySaysNotAssigned() {
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.empty());
-        when(identityClient.getAssignedForemanId(harvesterId))
-                .thenThrow(new UnauthorizedUserException("Harvester is not assigned to any foreman."));
-
-        assertThrows(UnauthorizedUserException.class,
-                () -> handler.handle(new LogHarvestRequest(), harvesterId));
-    }
-
-    @Test
-    void handle_passesWithoutCallingIdentity_whenReplicaIsAssignedHarvester() {
-        UserReplica replica = UserReplica.builder()
-                .id(harvesterId)
-                .role("BURUH")
-                .mandorId(foremanId)
-                .build();
-
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replica));
-
-        assertDoesNotThrow(() -> handler.handle(new LogHarvestRequest(), harvesterId));
-
+        assertDoesNotThrow(() -> handler.handle(request, harvesterId));
         verify(userReplicaRepository).findById(harvesterId);
-        verifyNoInteractions(identityClient);
     }
 
     @Test
-    void handle_fallsBackToIdentity_whenReplicaHasNoMandorId() {
-        UserReplica replica = UserReplica.builder()
-                .id(harvesterId)
-                .role("BURUH")
-                .mandorId(null)
-                .build();
+    void handle_throwsException_whenReplicaNotFound() {
+        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.empty());
 
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replica));
-        when(identityClient.getAssignedForemanId(harvesterId)).thenReturn(foremanId);
+        UnauthorizedUserException exception = assertThrows(
+                UnauthorizedUserException.class,
+                () -> handler.handle(request, harvesterId)
+        );
 
-        assertDoesNotThrow(() -> handler.handle(new LogHarvestRequest(), harvesterId));
-
-        verify(identityClient).getAssignedForemanId(harvesterId);
+        assertEquals("Harvester registration data not found in local replica.", exception.getMessage());
     }
 
     @Test
-    void handle_fallsBackToIdentity_whenReplicaRoleIsNotHarvester() {
-        UserReplica replica = UserReplica.builder()
+    void handle_throwsException_whenRoleIsNotHarvester() {
+        UserReplica invalidRoleReplica = UserReplica.builder()
                 .id(harvesterId)
                 .role("MANDOR")
                 .mandorId(foremanId)
                 .build();
 
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replica));
-        when(identityClient.getAssignedForemanId(harvesterId)).thenReturn(foremanId);
+        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(invalidRoleReplica));
 
-        assertDoesNotThrow(() -> handler.handle(new LogHarvestRequest(), harvesterId));
+        UnauthorizedUserException exception = assertThrows(
+                UnauthorizedUserException.class,
+                () -> handler.handle(request, harvesterId)
+        );
 
-        verify(identityClient).getAssignedForemanId(harvesterId);
+        assertEquals("User is not a harvester.", exception.getMessage());
+    }
+
+    @Test
+    void handle_throwsException_whenMandorIdIsNull() {
+        UserReplica replicaWithoutMandor = UserReplica.builder()
+                .id(harvesterId)
+                .role("BURUH")
+                .mandorId(null)
+                .build();
+
+        when(userReplicaRepository.findById(harvesterId)).thenReturn(Optional.of(replicaWithoutMandor));
+
+        UnauthorizedUserException exception = assertThrows(
+                UnauthorizedUserException.class,
+                () -> handler.handle(request, harvesterId)
+        );
+
+        assertEquals("Harvester is not assigned to any foreman.", exception.getMessage());
     }
 }

@@ -56,7 +56,7 @@ public class GlobalExceptionHandler {
 
         if (ex.getCause() instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException formatEx) {
             if (formatEx.getTargetType() != null && formatEx.getTargetType().isEnum()) {
-                message = "Invalid value provided for field '" + formatEx.getPath().get(0).getFieldName() + "'.";
+                message = "Invalid value provided for field '" + formatEx.getPath().getFirst().getFieldName() + "'.";
             }
         }
         

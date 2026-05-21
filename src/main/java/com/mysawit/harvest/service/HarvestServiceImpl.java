@@ -9,8 +9,8 @@ import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.repository.HarvestRepository;
 
-import com.mysawit.harvest.service.harvester.HarvesterContext;
-import com.mysawit.harvest.service.harvester.HarvesterContextResolver;
+import com.mysawit.harvest.dto.HarvesterContext;
+import com.mysawit.harvest.service.HarvesterContextService;
 import com.mysawit.harvest.service.state.HarvestState;
 import com.mysawit.harvest.service.validation.*;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ import java.util.UUID;
 public class HarvestServiceImpl implements HarvestService {
     private final HarvestMapper harvestMapper;
     private final HarvestRepository harvestRepository;
-    private final HarvesterContextResolver harvesterContextResolver;
+    private final HarvesterContextService harvesterContextService;
     private final PayrollAdapter payrollAdapter;
     private final HarvestValidationChain harvestValidationChain;
 
@@ -34,7 +34,7 @@ public class HarvestServiceImpl implements HarvestService {
     public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId) {
         harvestValidationChain.validate(request, harvesterId);
 
-        HarvesterContext ctx = harvesterContextResolver.resolve(harvesterId);
+        HarvesterContext ctx = harvesterContextService.resolve(harvesterId);
         Harvest harvest = createPendingHarvest(request, harvesterId, ctx);
 
         return harvestMapper.mapToResponse(harvestRepository.save(harvest));

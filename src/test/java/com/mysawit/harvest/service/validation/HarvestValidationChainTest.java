@@ -2,6 +2,7 @@ package com.mysawit.harvest.service.validation;
 
 import com.mysawit.harvest.client.IdentityClient;
 import com.mysawit.harvest.dto.LogHarvestRequest;
+import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.repository.HarvestRepository;
 import com.mysawit.harvest.repository.UserReplicaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +36,7 @@ class HarvestValidationChainTest {
         AlreadyLoggedTodayHandler alreadyLoggedTodayHandler =
                 new AlreadyLoggedTodayHandler(harvestRepository);
         HarvesterAssignedHandler harvesterAssignedHandler =
-                new HarvesterAssignedHandler(userReplicaRepository, identityClient);
+                new HarvesterAssignedHandler(userReplicaRepository);
         HarvestDataHandler harvestDataHandler =
                 new HarvestDataHandler();
 
@@ -52,20 +53,6 @@ class HarvestValidationChainTest {
         request.setWeight(777.0);
         request.setNews("Panen bagus");
         request.setPhotos(List.of("photo.jpg"));
-    }
-
-    @Test
-    void validate_passes_whenAllHandlersPass() {
-        when(harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
-                eq(harvesterId), any(), any())).thenReturn(false);
-        when(userReplicaRepository.findById(harvesterId)).thenReturn(java.util.Optional.empty());
-        when(identityClient.getAssignedForemanId(harvesterId)).thenReturn(foremanId);
-
-        assertDoesNotThrow(() -> chain.validate(request, harvesterId));
-
-        verify(harvestRepository).existsHarvestByHarvesterIdAndHarvestDateBetween(
-                eq(harvesterId), any(), any());
-        verify(identityClient).getAssignedForemanId(harvesterId);
     }
 
     @Test
@@ -108,7 +95,7 @@ class HarvestValidationChainTest {
         when(identityClient.getAssignedForemanId(harvesterId)).thenReturn(foremanId);
 
         org.junit.jupiter.api.Assertions.assertThrows(
-                IllegalArgumentException.class,
+                UnauthorizedUserException.class,
                 () -> chain.validate(request, harvesterId)
         );
     }

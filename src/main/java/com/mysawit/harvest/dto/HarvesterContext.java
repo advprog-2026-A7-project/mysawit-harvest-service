@@ -1,4 +1,4 @@
-package com.mysawit.harvest.service.harvester;
+package com.mysawit.harvest.dto;
 
 import java.util.UUID;
 

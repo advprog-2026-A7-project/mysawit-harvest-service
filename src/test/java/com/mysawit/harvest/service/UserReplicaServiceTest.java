@@ -32,8 +32,6 @@ class UserReplicaServiceTest {
         service = new UserReplicaService(repository);
     }
 
-    // --- user.registered upserts ---
-
     @Test
     void upsertFromRegistration_createsNewReplica_whenAbsent() {
         UUID userId = UUID.randomUUID();
@@ -181,6 +179,57 @@ class UserReplicaServiceTest {
         service.applyAssignment(new UserAssignedEvent(
                 "not-a-uuid", UUID.randomUUID().toString(), "x",
                 UserAssignedEvent.AssignmentAction.ASSIGNED, Instant.now()));
+
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void deleteUser_shouldDeleteFromRepository_whenUserExists() {
+        UUID userId = UUID.randomUUID();
+        com.mysawit.harvest.event.UserDeletedEvent event = new com.mysawit.harvest.event.UserDeletedEvent();
+        event.setUserId(userId.toString());
+        event.setRole("BURUH");
+
+        when(repository.existsById(userId)).thenReturn(true);
+
+        service.deleteUser(event);
+
+        verify(repository, times(1)).existsById(userId);
+        verify(repository, times(1)).deleteById(userId);
+    }
+
+    @Test
+    void deleteUser_shouldOnlyLogWarning_whenUserDoesNotExist() {
+        UUID userId = UUID.randomUUID();
+        com.mysawit.harvest.event.UserDeletedEvent event = new com.mysawit.harvest.event.UserDeletedEvent();
+        event.setUserId(userId.toString());
+        event.setRole("BURUH");
+
+        when(repository.existsById(userId)).thenReturn(false);
+
+        service.deleteUser(event);
+
+        verify(repository, times(1)).existsById(userId);
+        verify(repository, never()).deleteById(any(UUID.class));
+    }
+
+    @Test
+    void deleteUser_shouldSkipAndReturn_whenUserIdIsInvalid() {
+        com.mysawit.harvest.event.UserDeletedEvent event1 = new com.mysawit.harvest.event.UserDeletedEvent();
+        event1.setUserId("bukan-format-uuid");
+        event1.setRole("BURUH");
+
+        com.mysawit.harvest.event.UserDeletedEvent event2 = new com.mysawit.harvest.event.UserDeletedEvent();
+        event2.setUserId(null);
+        event2.setRole("BURUH");
+
+        com.mysawit.harvest.event.UserDeletedEvent event3 = new com.mysawit.harvest.event.UserDeletedEvent();
+        event3.setUserId("");
+        event3.setRole("BURUH");
+
+        service.deleteUser(event1);
+        service.deleteUser(event2);
+        service.deleteUser(event3);
 
         verifyNoInteractions(repository);
     }

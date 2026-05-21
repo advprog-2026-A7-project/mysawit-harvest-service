@@ -1,50 +1,30 @@
 package com.mysawit.harvest.dto;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-
+import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ForemanViewHarvestRequestTest {
 
-    private ForemanViewHarvestRequest request;
+    @Test
+    void testGettersAndSetters() {
+        ForemanViewHarvestRequest request = new ForemanViewHarvestRequest();
+        LocalDate testDate = LocalDate.of(2026, 5, 21);
 
-    @BeforeEach
-    void setUp() {
-        request = new ForemanViewHarvestRequest();
+        request.setHarvesterName("Strawberry");
+        request.setDate(testDate);
+
+        assertEquals("Strawberry", request.getHarvesterName());
+        assertEquals(testDate, request.getDate());
     }
 
     @Test
-    void setHarvesterName() {
-        request.setHarvesterName("Strawberry Shortcake");
-        assertEquals("Strawberry Shortcake", request.getHarvesterName());
-    }
+    void testNullValues() {
+        ForemanViewHarvestRequest request = new ForemanViewHarvestRequest();
+        request.setDate(null);
+        request.setHarvesterName(null);
 
-    @Test
-    void setStartDate_ShouldNormalizeToStartOfDay() {
-        LocalDateTime middleOfDay = LocalDateTime.of(2026, 4, 5, 14, 30);
-        request.setStartDate(middleOfDay);
-
-        assertEquals(LocalTime.MIN, request.getStartDate().toLocalTime());
-        assertEquals(5, request.getStartDate().getDayOfMonth());
-    }
-
-    @Test
-    void setEndDate_ShouldNormalizeToEndOfDay() {
-        LocalDateTime middleOfDay = LocalDateTime.of(2026, 4, 5, 14, 30);
-        request.setEndDate(middleOfDay);
-
-        assertEquals(LocalTime.MAX, request.getEndDate().toLocalTime());
-    }
-
-    @Test
-    void nullDates_ShouldBeHandled() {
-        request.setStartDate(null);
-        request.setEndDate(null);
-
-        assertNull(request.getStartDate());
-        assertNull(request.getEndDate());
+        assertNull(request.getDate());
+        assertNull(request.getHarvesterName());
     }
 }
