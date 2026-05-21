@@ -97,4 +97,25 @@ class HarvestValidationChainTest {
                 () -> chain.validate(request, harvesterId)
         );
     }
+
+    @Test
+    void validate_success_whenAllHandlersPass() {
+        UserReplica replicaWithMandor = com.mysawit.harvest.model.UserReplica.builder()
+                .id(harvesterId)
+                .role("BURUH")
+                .mandorId(foremanId)
+                .build();
+
+        when(harvestRepository.existsHarvestByHarvesterIdAndHarvestDateBetween(
+                eq(harvesterId), any(), any())).thenReturn(false);
+
+        when(userReplicaRepository.findById(harvesterId)).thenReturn(java.util.Optional.of(replicaWithMandor));
+
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() ->
+                chain.validate(request, harvesterId)
+        );
+
+        verify(harvestRepository).existsHarvestByHarvesterIdAndHarvestDateBetween(eq(harvesterId), any(), any());
+        verify(userReplicaRepository).findById(harvesterId);
+    }
 }

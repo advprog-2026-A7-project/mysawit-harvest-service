@@ -1,6 +1,6 @@
 package com.mysawit.harvest.mapper;
 
-import com.mysawit.harvest.dto.PayrollPayload;
+import com.mysawit.harvest.event.HarvestPayrollEvent;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +31,7 @@ class PayrollMapperTest {
                 .status(HarvestStatus.APPROVED)
                 .build();
 
-        PayrollPayload payload = payrollMapper.mapToPayload(harvest);
+        HarvestPayrollEvent payload = payrollMapper.mapToPayload(harvest);
 
         assertEquals(harvestId, payload.getHarvestId());
         assertEquals(harvesterId, payload.getHarvesterId());

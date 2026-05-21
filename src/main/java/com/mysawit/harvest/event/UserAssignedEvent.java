@@ -12,7 +12,6 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserAssignedEvent {
-
     private String userId;
     private String mandorId;
     private String mandorName;

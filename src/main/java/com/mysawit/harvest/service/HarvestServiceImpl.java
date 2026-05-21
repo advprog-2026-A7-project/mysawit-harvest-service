@@ -1,7 +1,7 @@
 package com.mysawit.harvest.service;
 
-import com.mysawit.harvest.adapter.PayrollAdapter;
 import com.mysawit.harvest.dto.*;
+import com.mysawit.harvest.event.HarvestPayrollEventPublisher;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.mapper.HarvestMapper;
@@ -10,7 +10,6 @@ import com.mysawit.harvest.model.HarvestStatus;
 import com.mysawit.harvest.repository.HarvestRepository;
 
 import com.mysawit.harvest.dto.HarvesterContext;
-import com.mysawit.harvest.service.HarvesterContextService;
 import com.mysawit.harvest.service.state.HarvestState;
 import com.mysawit.harvest.service.validation.*;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +26,7 @@ public class HarvestServiceImpl implements HarvestService {
     private final HarvestMapper harvestMapper;
     private final HarvestRepository harvestRepository;
     private final HarvesterContextService harvesterContextService;
-    private final PayrollAdapter payrollAdapter;
+    private final HarvestPayrollEventPublisher harvestPayrollEventPublisher;
     private final HarvestValidationChain harvestValidationChain;
 
     @Override
@@ -123,7 +122,7 @@ public class HarvestServiceImpl implements HarvestService {
 
         Harvest savedHarvest = harvestRepository.save(updatedHarvest);
         if (savedHarvest.getStatus() == HarvestStatus.APPROVED) {
-            payrollAdapter.publishApprovedHarvest(savedHarvest);
+            harvestPayrollEventPublisher.publishApprovedHarvest(savedHarvest);
         }
 
         return harvestMapper.mapToResponse(savedHarvest);

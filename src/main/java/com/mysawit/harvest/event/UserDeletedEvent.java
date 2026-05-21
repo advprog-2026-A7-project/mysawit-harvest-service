@@ -12,7 +12,6 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserDeletedEvent {
-
     private String userId;
     private String role;
     private String previousMandorId;

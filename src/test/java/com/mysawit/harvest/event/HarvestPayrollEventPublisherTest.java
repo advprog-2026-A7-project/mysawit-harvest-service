@@ -1,7 +1,6 @@
-package com.mysawit.harvest.adapter;
+package com.mysawit.harvest.event;
 
 import com.mysawit.harvest.config.RabbitMQConfig;
-import com.mysawit.harvest.dto.PayrollPayload;
 import com.mysawit.harvest.mapper.PayrollMapper;
 import com.mysawit.harvest.model.Harvest;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,17 +11,17 @@ import java.util.UUID;
 
 import static org.mockito.Mockito.*;
 
-class RabbitMQPayrollAdapterTest {
+class HarvestPayrollEventPublisherTest {
 
     private RabbitTemplate rabbitTemplate;
     private PayrollMapper payrollMapper;
-    private RabbitMQPayrollAdapter adapter;
+    private HarvestPayrollEventPublisher publisher;
 
     @BeforeEach
     void setUp() {
         rabbitTemplate = mock(RabbitTemplate.class);
         payrollMapper = mock(PayrollMapper.class);
-        adapter = new RabbitMQPayrollAdapter(rabbitTemplate, payrollMapper);
+        publisher = new HarvestPayrollEventPublisher(rabbitTemplate, payrollMapper);
     }
 
     @Test
@@ -33,7 +32,7 @@ class RabbitMQPayrollAdapterTest {
                 .weight(777.0)
                 .build();
 
-        PayrollPayload payload = PayrollPayload.builder()
+        HarvestPayrollEvent payload = HarvestPayrollEvent.builder()
                 .harvestId(harvest.getId())
                 .harvesterId(harvest.getHarvesterId())
                 .weight(harvest.getWeight())
@@ -42,7 +41,7 @@ class RabbitMQPayrollAdapterTest {
 
         when(payrollMapper.mapToPayload(harvest)).thenReturn(payload);
 
-        adapter.publishApprovedHarvest(harvest);
+        publisher.publishApprovedHarvest(harvest);
 
         verify(payrollMapper).mapToPayload(harvest);
         verify(rabbitTemplate).convertAndSend(RabbitMQConfig.PAYROLL_QUEUE, payload);

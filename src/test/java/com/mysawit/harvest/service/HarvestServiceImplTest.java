@@ -1,7 +1,7 @@
 package com.mysawit.harvest.service;
 
-import com.mysawit.harvest.adapter.PayrollAdapter;
 import com.mysawit.harvest.dto.*;
+import com.mysawit.harvest.event.HarvestPayrollEventPublisher;
 import com.mysawit.harvest.exception.HarvestLogNotFoundException;
 import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.mapper.HarvestMapper;
@@ -41,16 +41,16 @@ class HarvestServiceImplTest {
     private HarvestRepository harvestRepository;
 
     @Mock
-    private PayrollAdapter payrollAdapter;
-
-    @InjectMocks
-    private HarvestServiceImpl harvestService;
+    private HarvestPayrollEventPublisher harvestPayrollEventPublisher;
 
     @Mock
     private HarvestValidationChain harvestValidationChain;
 
     @Mock
     private HarvesterContextService harvesterContextService;
+
+    @InjectMocks
+    private HarvestServiceImpl harvestService;
 
     private UUID harvesterId;
     private UUID foremanId;
@@ -189,7 +189,7 @@ class HarvestServiceImplTest {
         assertEquals(HarvestStatus.APPROVED, response.getStatus());
         verify(harvestRepository).save(any(Harvest.class));
 
-        verify(payrollAdapter, times(1)).publishApprovedHarvest(any(Harvest.class));
+        verify(harvestPayrollEventPublisher, times(1)).publishApprovedHarvest(any(Harvest.class));
     }
 
     @Test
@@ -270,7 +270,7 @@ class HarvestServiceImplTest {
 
         harvestService.updateHarvestStatus(request, foremanId);
 
-        verify(payrollAdapter, never()).publishApprovedHarvest(any(Harvest.class));
+        verify(harvestPayrollEventPublisher, never()).publishApprovedHarvest(any(Harvest.class));
     }
 
     @Test
@@ -292,7 +292,7 @@ class HarvestServiceImplTest {
         assertEquals("Harvest status can only be updated to APPROVED or REJECTED status.", exception.getMessage());
 
         verify(harvestRepository, never()).save(any(Harvest.class));
-        verify(payrollAdapter, never()).publishApprovedHarvest(any(Harvest.class));
+        verify(harvestPayrollEventPublisher, never()).publishApprovedHarvest(any(Harvest.class));
     }
 
     // GENERAL VIEW ------------------------------------------------------------------
@@ -435,7 +435,7 @@ class HarvestServiceImplTest {
     @Test
     void harvesterViewHarvest_DateValidation_FalseWhenBothDatesAreNull() {
         HarvesterViewHarvestRequest request = new HarvesterViewHarvestRequest();
-        request.setStartDate(null); // 3. Dua-duanya null
+        request.setStartDate(null);
         request.setEndDate(null);
 
         when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any()))
@@ -448,12 +448,11 @@ class HarvestServiceImplTest {
     void harvesterViewHarvest_DateValidation_FalseWhenEndDateIsAfterStartDate() {
         HarvesterViewHarvestRequest request = new HarvesterViewHarvestRequest();
         request.setStartDate(LocalDateTime.of(2026, 5, 20, 8, 0));
-        request.setEndDate(LocalDateTime.of(2026, 5, 20, 17, 0)); // 4. valid (end setelah start)
+        request.setEndDate(LocalDateTime.of(2026, 5, 20, 17, 0));
 
         when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any()))
                 .thenReturn(List.of());
 
-        // Memastikan aman dan mengevaluasi branch 'endDate.isBefore(startDate)' sebagai false
         assertDoesNotThrow(() -> harvestService.harvesterViewHarvest(request, harvesterId));
     }
 }

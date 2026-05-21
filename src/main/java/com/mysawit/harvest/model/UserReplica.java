@@ -20,7 +20,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class UserReplica {
-
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
