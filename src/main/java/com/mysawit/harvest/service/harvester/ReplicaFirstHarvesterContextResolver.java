@@ -1,7 +1,6 @@
 package com.mysawit.harvest.service.harvester;
 
-import com.mysawit.harvest.client.IdentityClient;
-import com.mysawit.harvest.dto.IdentityUserResponse;
+import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.model.UserReplica;
 import com.mysawit.harvest.repository.UserReplicaRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,30 +14,20 @@ public class ReplicaFirstHarvesterContextResolver implements HarvesterContextRes
     private static final String HARVESTER_ROLE = "BURUH";
 
     private final UserReplicaRepository userReplicaRepository;
-    private final IdentityClient identityClient;
 
     @Override
     public HarvesterContext resolve(UUID harvesterId) {
-        UserReplica replica = userReplicaRepository.findById(harvesterId).orElse(null);
+        UserReplica replica = userReplicaRepository.findById(harvesterId)
+                .orElseThrow(() -> new UnauthorizedUserException("Harvester registration data not found."));
 
-        if (isCompleteHarvesterReplica(replica)) {
-            return new HarvesterContext(replica.getName(), replica.getMandorId());
+        if (!HARVESTER_ROLE.equals(replica.getRole())) {
+            throw new UnauthorizedUserException("User is not a harvester.");
         }
 
-        return resolveFromIdentity(harvesterId);
-    }
+        if (replica.getMandorId() == null) {
+            throw new UnauthorizedUserException("Harvester is not assigned to any foreman.");
+        }
 
-    private boolean isCompleteHarvesterReplica(UserReplica replica) {
-        return replica != null
-                && HARVESTER_ROLE.equals(replica.getRole())
-                && replica.getMandorId() != null
-                && replica.getName() != null;
-    }
-
-    private HarvesterContext resolveFromIdentity(UUID harvesterId) {
-        IdentityUserResponse harvester = identityClient.getUserById(harvesterId);
-        UUID foremanId = identityClient.getAssignedForemanId(harvesterId);
-
-        return new HarvesterContext(harvester.getName(), foremanId);
+        return new HarvesterContext(replica.getName(), replica.getMandorId());
     }
 }

@@ -17,7 +17,7 @@ public class UserAssignedEventConsumer {
 
     @RabbitListener(queues = "${harvest.rabbitmq.queues.user-assigned:harvest.user.assigned.queue}")
     public void onUserAssigned(UserAssignedEvent event) {
-        log.debug("Received user.assigned userId={} action={}", event.getUserId(), event.getAction());
+        log.info("Received user.assigned userId={} action={}", event.getUserId(), event.getAction());
         userReplicaService.applyAssignment(event);
     }
 }

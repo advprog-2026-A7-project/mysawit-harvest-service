@@ -1,6 +1,7 @@
 package com.mysawit.harvest.service;
 
 import com.mysawit.harvest.event.UserAssignedEvent;
+import com.mysawit.harvest.event.UserDeletedEvent;
 import com.mysawit.harvest.event.UserRegisteredEvent;
 import com.mysawit.harvest.model.UserReplica;
 import com.mysawit.harvest.repository.UserReplicaRepository;
@@ -37,7 +38,6 @@ public class UserReplicaService {
 
         replica.setName(resolvedName);
         replica.setRole(event.getRole());
-        // mandorId is preserved — do not overwrite if user.assigned arrived first.
 
         repository.save(replica);
         log.info("UserReplica upserted from user.registered userId={} role={}", userId, event.getRole());
@@ -51,17 +51,32 @@ public class UserReplicaService {
             return;
         }
 
-        UUID mandorId = parseUserId(event.getMandorId()); // null when UNASSIGNED
+        UUID mandorId = parseUserId(event.getMandorId());
 
         UserReplica replica = repository.findById(userId).orElseGet(() ->
                 UserReplica.builder().id(userId).build());
 
         replica.setMandorId(mandorId);
-        // name / role left intact; user.registered will fill them when it arrives.
 
         repository.save(replica);
         log.info("UserReplica assignment applied userId={} mandorId={} action={}",
                 userId, mandorId, event.getAction());
+    }
+
+    @Transactional
+    public void deleteUser(UserDeletedEvent event) {
+        UUID userId = parseUserId(event.getUserId());
+        if (userId == null) {
+            log.warn("Skipping user.deleted with invalid userId={}", event.getUserId());
+            return;
+        }
+
+        if (repository.existsById(userId)) {
+            repository.deleteById(userId);
+            log.info("UserReplica deleted userId={} role={}", userId, event.getRole());
+        } else {
+            log.warn("UserReplica not found for deletion userId={}", userId);
+        }
     }
 
     private UUID parseUserId(String raw) {
