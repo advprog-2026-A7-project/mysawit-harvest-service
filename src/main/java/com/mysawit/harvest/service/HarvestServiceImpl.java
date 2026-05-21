@@ -28,6 +28,17 @@ public class HarvestServiceImpl implements HarvestService {
     private final HarvesterContextService harvesterContextService;
     private final HarvestPayrollEventPublisher harvestPayrollEventPublisher;
     private final HarvestValidationChain harvestValidationChain;
+    private final com.mysawit.harvest.repository.UserReplicaRepository userReplicaRepository;
+
+    private void validateForemanPlantationAssignment(UUID foremanId) {
+        if (foremanId != null) {
+            com.mysawit.harvest.model.UserReplica foreman = userReplicaRepository.findById(foremanId)
+                    .orElseThrow(() -> new UnauthorizedUserException("Foreman not found."));
+            if (foreman.getPlantationId() == null || foreman.getPlantationId().trim().isEmpty()) {
+                throw new UnauthorizedUserException("Foreman is not assigned to any plantation.");
+            }
+        }
+    }
 
     @Override
     public HarvestResponse logHarvest(LogHarvestRequest request, UUID harvesterId) {
@@ -71,6 +82,7 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public List<HarvestResponse> foremanViewHarvest(ForemanViewHarvestRequest request, UUID foremanId) {
+        validateForemanPlantationAssignment(foremanId);
         List<Harvest> harvestList = harvestRepository.findAllByHarvesterNameAndDate(
                 foremanId,
                 request.getHarvesterName(),
@@ -84,6 +96,10 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public HarvestResponse getHarvestDetail(UUID id, UUID harvesterId, UUID foremanId) {
+        if (foremanId != null) {
+            validateForemanPlantationAssignment(foremanId);
+        }
+        
         Harvest harvest = harvestRepository.findById(id)
                 .orElseThrow(() -> new HarvestLogNotFoundException("Harvest log not found with ID: " + id));
 
@@ -104,6 +120,8 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     public HarvestResponse updateHarvestStatus(UpdateHarvestStatusRequest request, UUID foremanId) {
+        validateForemanPlantationAssignment(foremanId);
+        
         Harvest harvest = harvestRepository.findById(request.getId())
                 .orElseThrow(() -> new HarvestLogNotFoundException("Harvest log not found with ID: " + request.getId()));
 

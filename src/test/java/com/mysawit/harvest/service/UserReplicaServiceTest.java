@@ -118,8 +118,6 @@ class UserReplicaServiceTest {
         assertEquals("buruh@mail.com", captor.getValue().getName());
     }
 
-    // --- user.assigned upserts ---
-
     @Test
     void applyAssignment_setsMandorId_whenAssigned() {
         UUID userId = UUID.randomUUID();
@@ -135,8 +133,8 @@ class UserReplicaServiceTest {
         ArgumentCaptor<UserReplica> captor = ArgumentCaptor.forClass(UserReplica.class);
         verify(repository).save(captor.capture());
         assertEquals(mandorId, captor.getValue().getMandorId());
-        assertEquals("budi", captor.getValue().getName()); // preserved
-        assertEquals("BURUH", captor.getValue().getRole()); // preserved
+        assertEquals("budi", captor.getValue().getName());
+        assertEquals("BURUH", captor.getValue().getRole());
     }
 
     @Test
@@ -157,7 +155,6 @@ class UserReplicaServiceTest {
 
     @Test
     void applyAssignment_createsStubReplica_whenAssignedBeforeRegistered() {
-        // Out-of-order delivery — assignment lands first, replica row does not exist
         UUID userId = UUID.randomUUID();
         UUID mandorId = UUID.randomUUID();
         when(repository.findById(userId)).thenReturn(Optional.empty());
@@ -232,5 +229,90 @@ class UserReplicaServiceTest {
         service.deleteUser(event3);
 
         verifyNoInteractions(repository);
+    }
+
+    @Test
+    void applyMandorPlantationAssignment_skipsInvalidMandorId() {
+        com.mysawit.harvest.event.MandorPlantationAssignedEvent event =
+                new com.mysawit.harvest.event.MandorPlantationAssignedEvent();
+        event.setMandorId("bukan-format-uuid");
+        event.setPlantationId("PLT-99");
+        event.setAction(com.mysawit.harvest.event.MandorPlantationAssignedEvent.AssignmentAction.ASSIGNED);
+
+        service.applyMandorPlantationAssignment(event);
+
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void applyMandorPlantationAssignment_setsPlantationId_whenAssigned() {
+        UUID mandorId = UUID.randomUUID();
+        String plantationId = "PLT-12345";
+
+        UserReplica existingMandor = UserReplica.builder()
+                .id(mandorId).name("Pak Mandor Ahmad").role("MANDOR").build();
+        when(repository.findById(mandorId)).thenReturn(Optional.of(existingMandor));
+
+        com.mysawit.harvest.event.MandorPlantationAssignedEvent event =
+                new com.mysawit.harvest.event.MandorPlantationAssignedEvent();
+        event.setMandorId(mandorId.toString());
+        event.setPlantationId(plantationId);
+        event.setAction(com.mysawit.harvest.event.MandorPlantationAssignedEvent.AssignmentAction.ASSIGNED);
+
+        service.applyMandorPlantationAssignment(event);
+
+        ArgumentCaptor<UserReplica> captor = ArgumentCaptor.forClass(UserReplica.class);
+        verify(repository).save(captor.capture());
+
+        UserReplica saved = captor.getValue();
+        assertEquals(mandorId, saved.getId());
+        assertEquals(plantationId, saved.getPlantationId());
+        assertEquals("Pak Mandor Ahmad", saved.getName());
+    }
+
+    @Test
+    void applyMandorPlantationAssignment_clearsPlantationId_whenUnassigned() {
+        UUID mandorId = UUID.randomUUID();
+
+        UserReplica existingMandor = UserReplica.builder()
+                .id(mandorId).name("Pak Mandor Ahmad").role("MANDOR").plantationId("PLT-OLD").build();
+        when(repository.findById(mandorId)).thenReturn(Optional.of(existingMandor));
+
+        com.mysawit.harvest.event.MandorPlantationAssignedEvent event =
+                new com.mysawit.harvest.event.MandorPlantationAssignedEvent();
+        event.setMandorId(mandorId.toString());
+        event.setPlantationId("PLT-OLD");
+        event.setAction(com.mysawit.harvest.event.MandorPlantationAssignedEvent.AssignmentAction.UNASSIGNED);
+
+        service.applyMandorPlantationAssignment(event);
+
+        ArgumentCaptor<UserReplica> captor = ArgumentCaptor.forClass(UserReplica.class);
+        verify(repository).save(captor.capture());
+
+        assertNull(captor.getValue().getPlantationId());
+    }
+
+    @Test
+    void applyMandorPlantationAssignment_createsStubReplica_whenMandorAbsent() {
+        UUID mandorId = UUID.randomUUID();
+        String plantationId = "PLT-777";
+
+        when(repository.findById(mandorId)).thenReturn(Optional.empty());
+
+        com.mysawit.harvest.event.MandorPlantationAssignedEvent event =
+                new com.mysawit.harvest.event.MandorPlantationAssignedEvent();
+        event.setMandorId(mandorId.toString());
+        event.setPlantationId(plantationId);
+        event.setAction(com.mysawit.harvest.event.MandorPlantationAssignedEvent.AssignmentAction.ASSIGNED);
+
+        service.applyMandorPlantationAssignment(event);
+
+        ArgumentCaptor<UserReplica> captor = ArgumentCaptor.forClass(UserReplica.class);
+        verify(repository).save(captor.capture());
+
+        UserReplica saved = captor.getValue();
+        assertEquals(mandorId, saved.getId());
+        assertEquals(plantationId, saved.getPlantationId());
+        assertNull(saved.getName());
     }
 }

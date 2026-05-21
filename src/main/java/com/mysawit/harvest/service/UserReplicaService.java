@@ -44,6 +44,28 @@ public class UserReplicaService {
     }
 
     @Transactional
+    public void applyMandorPlantationAssignment(com.mysawit.harvest.event.MandorPlantationAssignedEvent event) {
+        UUID mandorId = parseUserId(event.getMandorId());
+        if (mandorId == null) {
+            log.warn("Skipping plantation.mandor.assignment with invalid mandorId={}", event.getMandorId());
+            return;
+        }
+
+        UserReplica replica = repository.findById(mandorId).orElseGet(() ->
+                UserReplica.builder().id(mandorId).build());
+
+        if (event.getAction() == com.mysawit.harvest.event.MandorPlantationAssignedEvent.AssignmentAction.UNASSIGNED) {
+            replica.setPlantationId(null);
+        } else {
+            replica.setPlantationId(event.getPlantationId());
+        }
+
+        repository.save(replica);
+        log.info("UserReplica plantation assignment applied mandorId={} plantationId={} action={}",
+                mandorId, event.getPlantationId(), event.getAction());
+    }
+
+    @Transactional
     public void applyAssignment(UserAssignedEvent event) {
         UUID userId = parseUserId(event.getUserId());
         if (userId == null) {

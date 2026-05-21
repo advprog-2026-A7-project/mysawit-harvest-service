@@ -7,6 +7,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.HttpInputMessage;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -21,7 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class GlobalExceptionHandlerTest {
-
+    private HttpInputMessage mockInputMessage;
     private GlobalExceptionHandler exceptionHandler;
 
     enum DummyEnum { YES, NO }
@@ -73,7 +74,7 @@ class GlobalExceptionHandlerTest {
         BindingResult bindingResult = mock(BindingResult.class);
 
         when(ex.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getFieldError()).thenReturn(null); // Memicu branch fieldError == null
+        when(bindingResult.getFieldError()).thenReturn(null);
 
         ResponseEntity<?> response = exceptionHandler.handleValidationError(ex);
         Map<?, ?> body = (Map<?, ?>) response.getBody();
@@ -103,9 +104,9 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void testHandleHttpMessageNotReadable_GenericCause() {
-        HttpMessageNotReadableException ex = new HttpMessageNotReadableException(
-                "Malformed JSON", new RuntimeException("Generic JSON error")
-        );
+        HttpInputMessage mockInputMessage = mock(HttpInputMessage.class);
+
+        HttpMessageNotReadableException ex = new HttpMessageNotReadableException("Malformed JSON request or invalid data type provided.", new RuntimeException("Generic JSON error"), mockInputMessage);
 
         ResponseEntity<?> response = exceptionHandler.handleHttpMessageNotReadable(ex);
         Map<?, ?> body = (Map<?, ?>) response.getBody();
@@ -127,7 +128,8 @@ class GlobalExceptionHandlerTest {
                 new com.fasterxml.jackson.databind.JsonMappingException.Reference(null, "status");
         when(mockFormatEx.getPath()).thenReturn(List.of(reference));
 
-        HttpMessageNotReadableException ex = new HttpMessageNotReadableException("Invalid format", mockFormatEx);
+        HttpMessageNotReadableException ex = new HttpMessageNotReadableException("Invalid format", mockFormatEx, mockInputMessage);
+
 
         ResponseEntity<?> response = exceptionHandler.handleHttpMessageNotReadable(ex);
         Map<?, ?> body = (Map<?, ?>) response.getBody();
@@ -147,7 +149,7 @@ class GlobalExceptionHandlerTest {
                 new com.fasterxml.jackson.databind.JsonMappingException.Reference(null, "age");
         when(mockFormatEx.getPath()).thenReturn(java.util.List.of(reference));
 
-        HttpMessageNotReadableException ex = new HttpMessageNotReadableException("Invalid format", mockFormatEx);
+        HttpMessageNotReadableException ex = new HttpMessageNotReadableException("Invalid format", mockFormatEx, mockInputMessage);
 
         ResponseEntity<?> response = exceptionHandler.handleHttpMessageNotReadable(ex);
         Map<?, ?> body = (Map<?, ?>) response.getBody();
@@ -167,7 +169,7 @@ class GlobalExceptionHandlerTest {
                 new com.fasterxml.jackson.databind.JsonMappingException.Reference(null, "age");
         when(mockFormatEx.getPath()).thenReturn(java.util.List.of(reference));
 
-        HttpMessageNotReadableException ex = new HttpMessageNotReadableException("Invalid format", mockFormatEx);
+        HttpMessageNotReadableException ex = new HttpMessageNotReadableException("Invalid format", mockFormatEx, mockInputMessage);
 
         ResponseEntity<?> response = exceptionHandler.handleHttpMessageNotReadable(ex);
         Map<?, ?> body = (Map<?, ?>) response.getBody();

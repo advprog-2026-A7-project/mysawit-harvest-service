@@ -7,6 +7,7 @@ import com.mysawit.harvest.exception.UnauthorizedUserException;
 import com.mysawit.harvest.mapper.HarvestMapper;
 import com.mysawit.harvest.model.Harvest;
 import com.mysawit.harvest.model.HarvestStatus;
+import com.mysawit.harvest.model.UserReplica;
 import com.mysawit.harvest.repository.HarvestRepository;
 
 import com.mysawit.harvest.dto.HarvesterContext;
@@ -49,6 +50,9 @@ class HarvestServiceImplTest {
     @Mock
     private HarvesterContextService harvesterContextService;
 
+    @Mock
+    private com.mysawit.harvest.repository.UserReplicaRepository userReplicaRepository;
+
     @InjectMocks
     private HarvestServiceImpl harvestService;
 
@@ -80,17 +84,26 @@ class HarvestServiceImplTest {
         updateStatusRequest = new UpdateHarvestStatusRequest();
     }
 
-    // HARVEST LOG ------------------------------------------------------------------
+    // HELPER ------------------------------------------------------------------
+    private void mockForemanValidation(UUID fid) {
+        UserReplica mockForeman = UserReplica.builder()
+                .id(fid)
+                .plantationId("PLT-12345678")
+                .build();
+
+        when(userReplicaRepository.findById(fid)).thenReturn(Optional.of(mockForeman));
+    }
+
     private void mockValidationChain() {
         doNothing().when(harvestValidationChain).validate(logRequest, harvesterId);
     }
 
+    // HARVEST LOG ------------------------------------------------------------------
     @Test
     void logHarvest_Success() {
         mockValidationChain();
 
-        when(harvesterContextService.resolve(harvesterId))
-                .thenReturn(new HarvesterContext(harvesterName, foremanId));
+        when(harvesterContextService.resolve(harvesterId)).thenReturn(new HarvesterContext(harvesterName, foremanId));
         when(harvestRepository.save(any(Harvest.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         HarvestResponse response = harvestService.logHarvest(logRequest, harvesterId);
@@ -150,6 +163,8 @@ class HarvestServiceImplTest {
     // FOREMAN VIEW ------------------------------------------------------------------
     @Test
     void foremanViewHarvest_Success() {
+        mockForemanValidation(foremanId);
+
         ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
         req.setHarvesterName("Strawberry Shortcake");
         req.setDate(LocalDate.now());
@@ -168,6 +183,8 @@ class HarvestServiceImplTest {
     // FOREMAN UPDATE STATUS ------------------------------------------------------------------
     @Test
     void updateHarvestStatus_Success_Approved_WithRabbitMQ() {
+        mockForemanValidation(foremanId);
+
         updateStatusRequest.setId(harvestId);
         updateStatusRequest.setStatus(HarvestStatus.APPROVED);
         updateStatusRequest.setRejectionReason(null);
@@ -194,6 +211,8 @@ class HarvestServiceImplTest {
 
     @Test
     void updateHarvestStatus_WrongForeman() {
+        mockForemanValidation(foremanId);
+
         UUID harvestId = UUID.randomUUID();
         updateStatusRequest.setId(harvestId);
 
@@ -215,6 +234,8 @@ class HarvestServiceImplTest {
 
     @Test
     void updateHarvestStatus_RejectedWithRemarks() {
+        mockForemanValidation(foremanId);
+
         UUID harvestId = UUID.randomUUID();
 
         updateStatusRequest.setId(harvestId);
@@ -241,6 +262,8 @@ class HarvestServiceImplTest {
 
     @Test
     void updateHarvestStatus_NotFound() {
+        mockForemanValidation(foremanId);
+
         UUID randomId = UUID.randomUUID();
         updateStatusRequest.setId(randomId);
 
@@ -254,6 +277,8 @@ class HarvestServiceImplTest {
 
     @Test
     void updateHarvestStatus_Rejected_ShouldNotSendRabbitMQMessage() {
+        mockForemanValidation(foremanId);
+
         UpdateHarvestStatusRequest request = new UpdateHarvestStatusRequest();
         request.setId(harvestId);
         request.setStatus(HarvestStatus.REJECTED);
@@ -275,6 +300,8 @@ class HarvestServiceImplTest {
 
     @Test
     void updateHarvestStatus_InvalidTargetStatus_ThrowsException() {
+        mockForemanValidation(foremanId);
+
         updateStatusRequest.setId(harvestId);
         updateStatusRequest.setStatus(HarvestStatus.PENDING);
 
@@ -298,6 +325,8 @@ class HarvestServiceImplTest {
     // GENERAL VIEW ------------------------------------------------------------------
     @Test
     void getHarvestDetail_SuccessAsForeman() {
+        mockForemanValidation(foremanId);
+
         UUID harvestId = UUID.randomUUID();
 
         Harvest mockHarvest = Harvest.builder()
@@ -350,6 +379,8 @@ class HarvestServiceImplTest {
 
     @Test
     void getHarvestDetail_NotFound() {
+        mockForemanValidation(foremanId);
+
         UUID randomId = UUID.randomUUID();
         when(harvestRepository.findById(randomId)).thenReturn(Optional.empty());
 
@@ -362,6 +393,8 @@ class HarvestServiceImplTest {
         UUID harvestId = UUID.randomUUID();
         UUID actualForemanId = UUID.randomUUID();
         UUID intruderForemanId = UUID.randomUUID();
+
+        mockForemanValidation(intruderForemanId);
 
         Harvest mockHarvest = Harvest.builder()
                 .id(harvestId)
@@ -404,18 +437,15 @@ class HarvestServiceImplTest {
                 harvestService.harvesterViewHarvest(validDateRequest, harvesterId));
     }
 
-    // BRANCH COVERAGE FOR DATE RANGE VALIDATION ------------------------------------
-
     @Test
     void harvesterViewHarvest_DateValidation_FalseWhenStartDateIsNull() {
         HarvesterViewHarvestRequest request = new HarvesterViewHarvestRequest();
-        request.setStartDate(null); // 1. startDate null
+        request.setStartDate(null);
         request.setEndDate(LocalDateTime.now());
 
         when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any()))
                 .thenReturn(List.of());
 
-        // Memastikan aman dan mengevaluasi branch 'startDate != null' sebagai false
         assertDoesNotThrow(() -> harvestService.harvesterViewHarvest(request, harvesterId));
     }
 
@@ -423,12 +453,11 @@ class HarvestServiceImplTest {
     void harvesterViewHarvest_DateValidation_FalseWhenEndDateIsNull() {
         HarvesterViewHarvestRequest request = new HarvesterViewHarvestRequest();
         request.setStartDate(LocalDateTime.now());
-        request.setEndDate(null); // 2. endDate null
+        request.setEndDate(null);
 
         when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any()))
                 .thenReturn(List.of());
 
-        // Memastikan aman dan mengevaluasi branch 'endDate != null' sebagai false
         assertDoesNotThrow(() -> harvestService.harvesterViewHarvest(request, harvesterId));
     }
 
@@ -454,5 +483,69 @@ class HarvestServiceImplTest {
                 .thenReturn(List.of());
 
         assertDoesNotThrow(() -> harvestService.harvesterViewHarvest(request, harvesterId));
+    }
+
+    @Test
+    void foremanViewHarvest_ThrowsException_WhenForemanNotFound() {
+        when(userReplicaRepository.findById(foremanId)).thenReturn(Optional.empty());
+
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+
+        UnauthorizedUserException exception = assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.foremanViewHarvest(req, foremanId));
+
+        assertEquals("Foreman not found.", exception.getMessage());
+        verifyNoInteractions(harvestRepository);
+    }
+
+    @Test
+    void foremanViewHarvest_ThrowsException_WhenPlantationIdIsNull() {
+        UserReplica mockForemanWithoutPlantation = UserReplica.builder()
+                .id(foremanId)
+                .plantationId(null)
+                .build();
+
+        when(userReplicaRepository.findById(foremanId)).thenReturn(Optional.of(mockForemanWithoutPlantation));
+
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+
+        UnauthorizedUserException exception = assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.foremanViewHarvest(req, foremanId));
+
+        assertEquals("Foreman is not assigned to any plantation.", exception.getMessage());
+        verifyNoInteractions(harvestRepository);
+    }
+
+    @Test
+    void foremanViewHarvest_ThrowsException_WhenPlantationIdIsEmptyOrSpaces() {
+        UserReplica mockForemanWithEmptyPlantation = UserReplica.builder()
+                .id(foremanId)
+                .plantationId("   ")
+                .build();
+
+        when(userReplicaRepository.findById(foremanId)).thenReturn(Optional.of(mockForemanWithEmptyPlantation));
+
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+
+        UnauthorizedUserException exception = assertThrows(UnauthorizedUserException.class, () ->
+                harvestService.foremanViewHarvest(req, foremanId));
+
+        assertEquals("Foreman is not assigned to any plantation.", exception.getMessage());
+        verifyNoInteractions(harvestRepository);
+    }
+
+    @Test
+    void foremanViewHarvest_ThrowsException_WhenForemanIdIsNull() {
+        ForemanViewHarvestRequest req = new ForemanViewHarvestRequest();
+
+        assertDoesNotThrow(() -> {
+            when(harvestRepository.findAllByHarvesterNameAndDate(any(), any(), any()))
+                    .thenReturn(List.of());
+
+            harvestService.foremanViewHarvest(req, null);
+        });
+
+        verify(harvestRepository).findAllByHarvesterNameAndDate(eq(null), any(), any());
+        verifyNoInteractions(userReplicaRepository);
     }
 }
