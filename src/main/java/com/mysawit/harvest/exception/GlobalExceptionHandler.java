@@ -11,12 +11,14 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     private static final String ERROR_KEY = "error";
+    private static final String MESSAGE_KEY = "message";
+
 
     @ExceptionHandler(AlreadyLoggedHarvestTodayException.class)
     public ResponseEntity<?> handleAlreadyLogged(AlreadyLoggedHarvestTodayException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                 ERROR_KEY, "ALREADY_LOGGED_TODAY",
-                "message", ex.getMessage()
+                MESSAGE_KEY, ex.getMessage()
         ));
     }
 
@@ -24,7 +26,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleUnauthorizedUser(UnauthorizedUserException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                 ERROR_KEY, "UNAUTHORIZED_ACCESS",
-                "message", ex.getMessage()
+                MESSAGE_KEY, ex.getMessage()
         ));
     }
 
@@ -39,7 +41,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 ERROR_KEY, "VALIDATION_ERROR",
-                "message", message
+                MESSAGE_KEY, message
         ));
     }
 
@@ -47,7 +49,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleTypeMismatch(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 ERROR_KEY, "INVALID_PARAMETER",
-                "message", "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'."
+                MESSAGE_KEY, "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'."
         ));
     }
 
@@ -55,15 +57,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
         String message = "Malformed JSON request or invalid data type provided.";
 
-        if (ex.getCause() instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException formatEx) {
-            if (formatEx.getTargetType() != null && formatEx.getTargetType().isEnum()) {
-                message = "Invalid value provided for field '" + formatEx.getPath().getFirst().getFieldName() + "'.";
-            }
+        if (ex.getCause() instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException formatEx
+                && formatEx.getTargetType() != null
+                && formatEx.getTargetType().isEnum()) {
+            message = "Invalid value provided for field '" + formatEx.getPath().getFirst().getFieldName() + "'.";
         }
-        
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 ERROR_KEY, "INVALID_REQUEST_BODY",
-                "message", message
+                MESSAGE_KEY, message
         ));
     }
 
@@ -71,7 +73,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleStatusAlreadyUpdated(HarvestStatusAlreadyUpdatedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                 ERROR_KEY, "STATUS_ALREADY_UPDATED",
-                "message", ex.getMessage()
+                MESSAGE_KEY, ex.getMessage()
         ));
     }
 
@@ -79,7 +81,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleNotFound(HarvestLogNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                 ERROR_KEY, "NOT_FOUND",
-                "message", ex.getMessage()
+                MESSAGE_KEY, ex.getMessage()
         ));
     }
 
@@ -87,7 +89,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 ERROR_KEY, "INVALID_ARGUMENT",
-                "message", ex.getMessage()
+                MESSAGE_KEY, ex.getMessage()
         ));
     }
 }

@@ -23,7 +23,7 @@ class HarvestMapperTest {
     @Test
     void mapToResponse_shouldMapAllHarvestFields() {
         UUID harvestId = UUID.randomUUID();
-        String plantationId = "PLT-12345678";;
+        String plantationId = "PLT-12345678";
         UUID harvesterId = UUID.randomUUID();
         UUID foremanId = UUID.randomUUID();
         LocalDateTime harvestDate = LocalDateTime.now().minusDays(1);
