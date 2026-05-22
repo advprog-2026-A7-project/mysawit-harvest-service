@@ -104,7 +104,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void testHandleHttpMessageNotReadable_GenericCause() {
-        HttpInputMessage mockInputMessage = mock(HttpInputMessage.class);
+        mockInputMessage = mock(HttpInputMessage.class);
 
         HttpMessageNotReadableException ex = new HttpMessageNotReadableException("Malformed JSON request or invalid data type provided.", new RuntimeException("Generic JSON error"), mockInputMessage);
 
