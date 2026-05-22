@@ -35,40 +35,78 @@ jobs:
           target: "~/mysawit-harvest"
           strip_components: 0
 
-      - name: Build and Run Container
+      - name: Build and Run App Container
         uses: appleboy/ssh-action@master
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          RABBITMQ_HOST: ${{ secrets.RABBITMQ_HOST }}
+          RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
+          IDENTITY_SERVICE_URL: ${{ secrets.IDENTITY_SERVICE_URL }}
+          IDENTITY_INTERNAL_API_KEY: ${{ secrets.IDENTITY_INTERNAL_API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+          SUPABASE_ENDPOINT: ${{ secrets.SUPABASE_ENDPOINT }}
+          SUPABASE_REGION: ${{ secrets.SUPABASE_REGION }}
+          SUPABASE_ACCESS_KEY: ${{ secrets.SUPABASE_ACCESS_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_BUCKET: ${{ secrets.SUPABASE_BUCKET }}
         with:
-            host: ${{ secrets.STAGING_HOST }}
-            username: ${{ secrets.STAGING_USER }}
-            key: ${{ secrets.STAGING_SSH_KEY }}
-            script: |
-              cd ~/mysawit-harvest
-              
-              sudo docker stop harvest-service || true
-              sudo docker rm harvest-service || true
-              
-              sudo docker build -t mysawit-harvest .
-              
-              sudo docker run -d \
-                --name harvest-service \
-                --network host \
-                -e SPRING_DATASOURCE_URL='${{ secrets.SPRING_DATASOURCE_URL }}' \
-                -e SPRING_DATASOURCE_USERNAME='${{ secrets.SPRING_DATASOURCE_USERNAME }}' \
-                -e SPRING_DATASOURCE_PASSWORD='${{ secrets.SPRING_DATASOURCE_PASSWORD }}' \
-                -e RABBITMQ_HOST='${{ secrets.RABBITMQ_HOST }}' \
-                -e RABBITMQ_USERNAME='${{ secrets.RABBITMQ_USERNAME }}' \
-                -e RABBITMQ_PASSWORD='${{ secrets.RABBITMQ_PASSWORD }}' \
-                -e RABBITMQ_VHOST='${{ secrets.RABBITMQ_VHOST }}' \
-                -e IDENTITY_SERVICE_URL='${{ secrets.IDENTITY_SERVICE_URL }}' \
-                -e IDENTITY_INTERNAL_API_KEY='${{ secrets.IDENTITY_INTERNAL_API_KEY }}' \
-                -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
-                -e CORS_ORIGINS='${{ secrets.CORS_ORIGINS }}' \
-                --restart unless-stopped \
-                mysawit-harvest
-              
-              echo "GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}" > .env
-              echo "GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" >> .env
-              sudo docker-compose up -d || sudo docker compose up -d
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,RABBITMQ_HOST,RABBITMQ_USERNAME,RABBITMQ_PASSWORD,RABBITMQ_VHOST,IDENTITY_SERVICE_URL,IDENTITY_INTERNAL_API_KEY,JWT_SECRET,CORS_ORIGINS,SUPABASE_ENDPOINT,SUPABASE_REGION,SUPABASE_ACCESS_KEY,SUPABASE_SECRET_KEY,SUPABASE_BUCKET
+          script: |
+            cd ~/mysawit-harvest
+            
+            sudo docker stop harvest-service || true
+            sudo docker rm harvest-service || true
+            
+            sudo docker build -t mysawit-harvest .
+            
+            echo "SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL" > .env
+            echo "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME" >> .env
+            echo "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD" >> .env
+            echo "RABBITMQ_HOST=$RABBITMQ_HOST" >> .env
+            echo "RABBITMQ_USERNAME=$RABBITMQ_USERNAME" >> .env
+            echo "RABBITMQ_PASSWORD=$RABBITMQ_PASSWORD" >> .env
+            echo "RABBITMQ_VHOST=$RABBITMQ_VHOST" >> .env
+            echo "IDENTITY_SERVICE_URL=$IDENTITY_SERVICE_URL" >> .env
+            echo "IDENTITY_INTERNAL_API_KEY=$IDENTITY_INTERNAL_API_KEY" >> .env
+            echo "JWT_SECRET=$JWT_SECRET" >> .env
+            echo "CORS_ORIGINS=$CORS_ORIGINS" >> .env
+            echo "SUPABASE_ENDPOINT=$SUPABASE_ENDPOINT" >> .env
+            echo "SUPABASE_REGION=$SUPABASE_REGION" >> .env
+            echo "SUPABASE_ACCESS_KEY=$SUPABASE_ACCESS_KEY" >> .env
+            echo "SUPABASE_SECRET_KEY=$SUPABASE_SECRET_KEY" >> .env
+            echo "SUPABASE_BUCKET=$SUPABASE_BUCKET" >> .env
+            
+            sudo docker run -d \
+              --name harvest-service \
+              --network host \
+              --env-file .env \
+              --restart unless-stopped \
+              mysawit-harvest
+
+      - name: Run Monitoring Stack (Optional Fallback)
+        uses: appleboy/ssh-action@master
+        env:
+          GRAFANA_ADMIN_USER: ${{ secrets.GRAFANA_ADMIN_USER }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: GRAFANA_ADMIN_USER,GRAFANA_ADMIN_PASSWORD
+          script: |
+            cd ~/mysawit-harvest
+            echo "GRAFANA_ADMIN_USER=$GRAFANA_ADMIN_USER" > monitoring.env
+            echo "GRAFANA_ADMIN_PASSWORD=$GRAFANA_ADMIN_PASSWORD" >> monitoring.env
+
+            sudo docker compose up -d || true
 
       - name: Verify Health
         uses: appleboy/ssh-action@master
