@@ -68,7 +68,7 @@ jobs:
               
               echo "GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}" > .env
               echo "GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" >> .env
-              sudo docker-compose up -d || sudo docker compose up -d
+              sudo docker compose up -d
 
       - name: Verify Health
         uses: appleboy/ssh-action@master
