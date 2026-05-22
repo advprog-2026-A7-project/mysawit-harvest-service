@@ -16,7 +16,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserReplicaService {
-
     private static final Logger log = LoggerFactory.getLogger(UserReplicaService.class);
 
     private final UserReplicaRepository repository;

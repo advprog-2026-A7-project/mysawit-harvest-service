@@ -12,10 +12,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface HarvestRepository extends JpaRepository<Harvest, UUID> {
-    // Harvester log
     boolean existsHarvestByHarvesterIdAndHarvestDateBetween(UUID harvesterId, LocalDateTime dayStart, LocalDateTime dayEnd);
 
-    // Harvester view
     @Query("SELECT h FROM Harvest h WHERE h.harvesterId = :harvesterId " +
             "AND (:status IS NULL OR h.status = :status) " +
             "AND (cast(:start as timestamp) IS NULL OR h.harvestDate >= :start) " +
@@ -28,7 +26,6 @@ public interface HarvestRepository extends JpaRepository<Harvest, UUID> {
             @Param("end") LocalDateTime end
     );
 
-    // Foreman view
     @Query("SELECT h FROM Harvest h WHERE h.foremanId = :foremanId " +
             "AND (cast(:name as text) IS NULL OR LOWER(h.harvesterName) LIKE LOWER(CONCAT('%', cast(:name as text), '%'))) " +
             "AND (cast(:date as text) IS NULL OR cast(h.harvestDate as date) = :date) " +

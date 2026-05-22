@@ -10,11 +10,12 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final String ERROR_KEY = "error";
 
     @ExceptionHandler(AlreadyLoggedHarvestTodayException.class)
     public ResponseEntity<?> handleAlreadyLogged(AlreadyLoggedHarvestTodayException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                "error", "ALREADY_LOGGED_TODAY",
+                ERROR_KEY, "ALREADY_LOGGED_TODAY",
                 "message", ex.getMessage()
         ));
     }
@@ -22,7 +23,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedUserException.class)
     public ResponseEntity<?> handleUnauthorizedUser(UnauthorizedUserException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                "error", "UNAUTHORIZED_ACCESS",
+                ERROR_KEY, "UNAUTHORIZED_ACCESS",
                 "message", ex.getMessage()
         ));
     }
@@ -37,7 +38,7 @@ public class GlobalExceptionHandler {
         }
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "VALIDATION_ERROR",
+                ERROR_KEY, "VALIDATION_ERROR",
                 "message", message
         ));
     }
@@ -45,7 +46,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
     public ResponseEntity<?> handleTypeMismatch(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "INVALID_PARAMETER",
+                ERROR_KEY, "INVALID_PARAMETER",
                 "message", "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'."
         ));
     }
@@ -61,7 +62,7 @@ public class GlobalExceptionHandler {
         }
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "INVALID_REQUEST_BODY",
+                ERROR_KEY, "INVALID_REQUEST_BODY",
                 "message", message
         ));
     }
@@ -69,7 +70,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HarvestStatusAlreadyUpdatedException.class)
     public ResponseEntity<?> handleStatusAlreadyUpdated(HarvestStatusAlreadyUpdatedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                "error", "STATUS_ALREADY_UPDATED",
+                ERROR_KEY, "STATUS_ALREADY_UPDATED",
                 "message", ex.getMessage()
         ));
     }
@@ -77,7 +78,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HarvestLogNotFoundException.class)
     public ResponseEntity<?> handleNotFound(HarvestLogNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                "error", "NOT_FOUND",
+                ERROR_KEY, "NOT_FOUND",
                 "message", ex.getMessage()
         ));
     }
@@ -85,7 +86,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "INVALID_ARGUMENT",
+                ERROR_KEY, "INVALID_ARGUMENT",
                 "message", ex.getMessage()
         ));
     }

@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class HarvestStateTest {
-
     @Test
     void of_returnsPendingState_whenHarvestStatusIsPending() {
         Harvest harvest = Harvest.builder().status(HarvestStatus.PENDING).build();

@@ -84,7 +84,6 @@ class HarvestServiceImplTest {
         updateStatusRequest = new UpdateHarvestStatusRequest();
     }
 
-    // HELPER ------------------------------------------------------------------
     private void mockForemanValidation(UUID fid) {
         UserReplica mockForeman = UserReplica.builder()
                 .id(fid)
@@ -98,7 +97,6 @@ class HarvestServiceImplTest {
         doNothing().when(harvestValidationChain).validate(logRequest, harvesterId);
     }
 
-    // HARVEST LOG ------------------------------------------------------------------
     @Test
     void logHarvest_Success() {
         mockValidationChain();
@@ -118,7 +116,6 @@ class HarvestServiceImplTest {
         verify(harvestRepository).save(any(Harvest.class));
     }
 
-    // HARVESTER VIEW ------------------------------------------------------------------
     @Test
     void harvesterViewHarvest_FilterByHarvesterId() {
         when(harvestRepository.findAllByHarvesterIdAndDateAndStatus(eq(harvesterId), any(), any(), any()))
@@ -160,7 +157,6 @@ class HarvestServiceImplTest {
         verify(harvestRepository).findAllByHarvesterIdAndDateAndStatus(any(), eq(HarvestStatus.APPROVED), any(), any());
     }
 
-    // FOREMAN VIEW ------------------------------------------------------------------
     @Test
     void foremanViewHarvest_Success() {
         mockForemanValidation(foremanId);
@@ -180,7 +176,6 @@ class HarvestServiceImplTest {
                 eq(foremanId), eq("Strawberry Shortcake"), any());
     }
 
-    // FOREMAN UPDATE STATUS ------------------------------------------------------------------
     @Test
     void updateHarvestStatus_Success_Approved_WithRabbitMQ() {
         mockForemanValidation(foremanId);
@@ -213,7 +208,6 @@ class HarvestServiceImplTest {
     void updateHarvestStatus_WrongForeman() {
         mockForemanValidation(foremanId);
 
-        UUID harvestId = UUID.randomUUID();
         updateStatusRequest.setId(harvestId);
 
         UUID anotherForemanId = UUID.randomUUID();
@@ -235,8 +229,6 @@ class HarvestServiceImplTest {
     @Test
     void updateHarvestStatus_RejectedWithRemarks() {
         mockForemanValidation(foremanId);
-
-        UUID harvestId = UUID.randomUUID();
 
         updateStatusRequest.setId(harvestId);
         updateStatusRequest.setStatus(HarvestStatus.REJECTED);
@@ -322,12 +314,9 @@ class HarvestServiceImplTest {
         verify(harvestPayrollEventPublisher, never()).publishApprovedHarvest(any(Harvest.class));
     }
 
-    // GENERAL VIEW ------------------------------------------------------------------
     @Test
     void getHarvestDetail_SuccessAsForeman() {
         mockForemanValidation(foremanId);
-
-        UUID harvestId = UUID.randomUUID();
 
         Harvest mockHarvest = Harvest.builder()
                 .id(harvestId)
@@ -346,8 +335,8 @@ class HarvestServiceImplTest {
 
     @Test
     void getHarvestDetail_SuccessAsOwner() {
-        UUID harvestId = UUID.randomUUID();
         UUID myId = UUID.randomUUID();
+
         Harvest mockHarvest = Harvest.builder()
                 .id(harvestId)
                 .harvesterId(myId)
@@ -363,7 +352,6 @@ class HarvestServiceImplTest {
 
     @Test
     void getHarvestDetail_ForbiddenForOtherHarvester() {
-        UUID harvestId = UUID.randomUUID();
         UUID myId = UUID.randomUUID();
         UUID otherId = UUID.randomUUID();
         Harvest mockHarvest = Harvest.builder()
@@ -390,7 +378,6 @@ class HarvestServiceImplTest {
 
     @Test
     void getHarvestDetail_ForbiddenForOtherForeman() {
-        UUID harvestId = UUID.randomUUID();
         UUID actualForemanId = UUID.randomUUID();
         UUID intruderForemanId = UUID.randomUUID();
 

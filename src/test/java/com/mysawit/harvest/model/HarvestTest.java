@@ -8,6 +8,7 @@ class HarvestTest {
     @Test
     void defaultStatusIsPending() {
         Harvest harvest = new Harvest();
+
         assertEquals(HarvestStatus.PENDING, harvest.getStatus());
     }
 
@@ -17,11 +18,11 @@ class HarvestTest {
                 .harvesterId(java.util.UUID.randomUUID())
                 .foremanId(java.util.UUID.randomUUID())
                 .plantationId("PLT-12345678")
-                .weight(300.5)
+                .weight(777.0)
                 .news("Successful harvest")
                 .build();
 
-        assertEquals(300.5, harvest.getWeight());
+        assertEquals(777.0, harvest.getWeight());
         assertEquals("Successful harvest", harvest.getNews());
         assertEquals(HarvestStatus.PENDING, harvest.getStatus());
         assertNull(harvest.getRejectionReason());

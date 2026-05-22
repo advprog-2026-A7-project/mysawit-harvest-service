@@ -5,7 +5,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class HarvesterContextTest {
-
     @Test
     void constructor_ShouldStoreValuesCorrectly() {
         UUID foremanId = UUID.randomUUID();

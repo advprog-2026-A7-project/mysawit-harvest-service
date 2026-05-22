@@ -12,7 +12,6 @@ import java.util.UUID;
 import static org.mockito.Mockito.*;
 
 class HarvestPayrollEventPublisherTest {
-
     private RabbitTemplate rabbitTemplate;
     private PayrollMapper payrollMapper;
     private HarvestPayrollEventPublisher publisher;

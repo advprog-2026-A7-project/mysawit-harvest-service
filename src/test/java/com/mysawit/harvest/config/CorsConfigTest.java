@@ -9,7 +9,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CorsConfigTest {
-
     @Test
     void corsConfigurationSourceBuildsExpectedConfiguration() {
         CorsConfig corsConfig = new CorsConfig();
@@ -25,7 +24,7 @@ class CorsConfigTest {
         assertEquals(2, configuration.getAllowedOrigins().size());
         assertTrue(configuration.getAllowedMethods().contains("GET"));
         assertEquals(1, configuration.getAllowedHeaders().size());
-        assertEquals("*", configuration.getAllowedHeaders().get(0));
+        assertEquals("*", configuration.getAllowedHeaders().getFirst());
         assertTrue(Boolean.TRUE.equals(configuration.getAllowCredentials()));
     }
 }

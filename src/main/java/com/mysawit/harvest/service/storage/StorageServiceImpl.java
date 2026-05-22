@@ -15,7 +15,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class StorageServiceImpl implements StorageService {
-
     private final S3Client s3Client;
 
     @Value("${supabase.storage.bucket-name}")

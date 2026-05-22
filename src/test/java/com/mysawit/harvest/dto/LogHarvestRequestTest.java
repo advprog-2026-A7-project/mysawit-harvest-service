@@ -9,13 +9,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class LogHarvestRequestTest {
     private Validator validator;
-    private String plantationId = "PLT-12345678";
+    private final String plantationId = "PLT-12345678";
 
     @BeforeEach
     void setUp() {
@@ -23,7 +22,6 @@ class LogHarvestRequestTest {
         validator = factory.getValidator();
     }
 
-    // Helper method untuk cek validation pada suatu field
     private boolean hasViolationOnField(Set<ConstraintViolation<LogHarvestRequest>> violations, String fieldName) {
         for (ConstraintViolation<LogHarvestRequest> violation : violations) {
             if (violation.getPropertyPath().toString().equals(fieldName)) {
@@ -37,7 +35,7 @@ class LogHarvestRequestTest {
     void validHarvest() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(plantationId);
-        request.setWeight(300.5);
+        request.setWeight(777.0);
         request.setNews("Successful harvest");
 
         Set<ConstraintViolation<LogHarvestRequest>> violations = validator.validate(request);
@@ -48,7 +46,7 @@ class LogHarvestRequestTest {
     void nullPlantationId() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(null);
-        request.setWeight(300.5);
+        request.setWeight(777.0);
         request.setNews("Successful harvest");
 
         Set<ConstraintViolation<LogHarvestRequest>> violations = validator.validate(request);
@@ -72,7 +70,7 @@ class LogHarvestRequestTest {
     void negativeWeight() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(plantationId);
-        request.setWeight(-300.5);
+        request.setWeight(-777.0);
         request.setNews("Successful harvest");
 
         Set<ConstraintViolation<LogHarvestRequest>> violations = validator.validate(request);
@@ -96,7 +94,7 @@ class LogHarvestRequestTest {
     void nullNews() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(plantationId);
-        request.setWeight(300.5);
+        request.setWeight(777.0);
         request.setNews(null);
 
         Set<ConstraintViolation<LogHarvestRequest>> violations = validator.validate(request);
@@ -108,7 +106,7 @@ class LogHarvestRequestTest {
     void nullPhotos() {
         LogHarvestRequest request = new LogHarvestRequest();
         request.setPlantationId(plantationId);
-        request.setWeight(300.5);
+        request.setWeight(777.0);
         request.setNews("Successful harvest");
         request.setPhotos(null);
 

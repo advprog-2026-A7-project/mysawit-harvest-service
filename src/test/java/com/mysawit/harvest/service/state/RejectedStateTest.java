@@ -11,7 +11,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RejectedStateTest {
-
     private RejectedState state;
 
     @BeforeEach

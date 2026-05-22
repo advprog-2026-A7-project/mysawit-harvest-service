@@ -17,7 +17,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class JwtIdentityProviderTest {
-
     private JwtIdentityProvider jwtIdentityProvider;
     private final String secret = "secretKeyYangSangatPanjangMinimal32Karakter!!";
     private SecretKey key;

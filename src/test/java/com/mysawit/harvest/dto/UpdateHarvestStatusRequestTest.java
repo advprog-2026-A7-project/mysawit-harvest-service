@@ -14,7 +14,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class UpdateHarvestStatusRequestTest {
-
     private Validator validator;
     private UpdateHarvestStatusRequest updateStatusRequest;
 
