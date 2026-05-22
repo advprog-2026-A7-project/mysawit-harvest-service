@@ -12,9 +12,7 @@ public class MysawitHarvestServiceApplication {
                 .ignoreIfMissing()
                 .load();
 
-        dotenv.entries().forEach(entry -> {
-            System.setProperty(entry.getKey(), entry.getValue());
-        });
+        dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
 
         ConfigurableApplicationContext context = SpringApplication.run(MysawitHarvestServiceApplication.class, args);
 

@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class UserRegisteredEventConsumer {
-
     private static final Logger log = LoggerFactory.getLogger(UserRegisteredEventConsumer.class);
 
     private final UserReplicaService userReplicaService;

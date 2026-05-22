@@ -14,7 +14,6 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserDeletedEventConsumerTest {
-
     @Mock
     private UserReplicaService userReplicaService;
 

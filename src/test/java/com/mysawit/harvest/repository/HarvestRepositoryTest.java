@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class HarvestRepositoryTest {
-
     @Autowired
     private HarvestRepository harvestRepository;
 
@@ -76,7 +75,6 @@ class HarvestRepositoryTest {
         harvestRepository.saveAll(List.of(harvest1, harvest2));
     }
 
-    // HARVEST LOG ------------------------------------------------------------------
     @Test
     void existsHarvestByHarvesterIdAndHarvestDateBetween_ReturnsTrue_WhenExists() {
         LocalDateTime start = LocalDateTime.of(2026, 3, 1, 0, 0);
@@ -97,10 +95,10 @@ class HarvestRepositoryTest {
         assertFalse(exists);
     }
 
-    // HARVESTER VIEW ------------------------------------------------------------------
     @Test
     void findAllByHarvesterIdAndDate_ShowAll_WhenDatesAreNull() {
         List<Harvest> results = findHarvesterHarvests(harvesterId, null, null, null);
+
         assertEquals(2, results.size());
     }
 
@@ -108,6 +106,7 @@ class HarvestRepositoryTest {
     void findAllByHarvesterIdAndDate_OnlyStartDate() {
         LocalDateTime start = LocalDateTime.of(2026, 3, 10, 0, 0);
         List<Harvest> results = findHarvesterHarvests(harvesterId, null, start, null);
+
         assertEquals(1, results.size());
         assertEquals(harvest2.getHarvestDate(), results.getFirst().getHarvestDate());
     }
@@ -116,6 +115,7 @@ class HarvestRepositoryTest {
     void findAllByHarvesterIdAndDate_OnlyEndDate() {
         LocalDateTime end = LocalDateTime.of(2026, 3, 5, 23, 59);
         List<Harvest> results = findHarvesterHarvests(harvesterId, null, null, end);
+
         assertEquals(1, results.size());
         assertEquals(harvest1.getHarvestDate(), results.getFirst().getHarvestDate());
     }
@@ -125,38 +125,43 @@ class HarvestRepositoryTest {
         LocalDateTime start = LocalDateTime.of(2026, 3, 1, 0, 0);
         LocalDateTime end = LocalDateTime.of(2026, 3, 20, 0, 0);
         List<Harvest> results = findHarvesterHarvests(harvesterId, null, start, end);
+
         assertEquals(2, results.size());
     }
 
     @Test
     void findAllByHarvesterIdAndDate_FilterByStatusApproved() {
         List<Harvest> results = findHarvesterHarvests(harvesterId, HarvestStatus.APPROVED, null, null);
+
         assertEquals(1, results.size());
         assertEquals(HarvestStatus.APPROVED, results.getFirst().getStatus());
     }
 
-    // FOREMAN VIEW ------------------------------------------------------------------
     @Test
     void findAllForemanFiltered_NoFilter_ReturnAll() {
         List<Harvest> results = findForemanHarvests(foremanId, null, null);
+
         assertEquals(2, results.size());
     }
 
     @Test
     void findAllForemanFiltered_FilterByName_Found() {
         List<Harvest> results = findForemanHarvests(foremanId, "strawberry", null);
+
         assertEquals(2, results.size());
     }
 
     @Test
     void findAllForemanFiltered_FilterByName_NotFound() {
         List<Harvest> results = findForemanHarvests(foremanId, "mango", null);
+
         assertEquals(0, results.size());
     }
 
     @Test
     void findAllForemanFiltered_FilterByDate_Found() {
         List<Harvest> results = findForemanHarvests(foremanId, null, LocalDate.of(2026, 3, 1));
+
         assertEquals(1, results.size());
         assertEquals(harvest1.getId(), results.getFirst().getId());
     }
@@ -164,12 +169,14 @@ class HarvestRepositoryTest {
     @Test
     void findAllForemanFiltered_FilterByDate_NotFound() {
         List<Harvest> results = findForemanHarvests(foremanId, null, LocalDate.of(2026, 3, 2));
+
         assertEquals(0, results.size());
     }
 
     @Test
     void findAllForemanFiltered_FilterByNameAndDate_Found() {
         List<Harvest> results = findForemanHarvests(foremanId, "strawberry", LocalDate.of(2026, 3, 15));
+
         assertEquals(1, results.size());
         assertEquals(harvest2.getId(), results.getFirst().getId());
     }
@@ -177,6 +184,7 @@ class HarvestRepositoryTest {
     @Test
     void findAllForemanFiltered_FilterByNameAndDate_NotFound() {
         List<Harvest> results = findForemanHarvests(foremanId, "raspberry", LocalDate.of(2026, 3, 1));
+
         assertEquals(0, results.size());
     }
 }

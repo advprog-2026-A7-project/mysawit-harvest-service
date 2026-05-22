@@ -6,15 +6,12 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 
+@Setter
 @Getter
 @NoArgsConstructor
 public class ForemanViewHarvestRequest {
-    @Setter
     private String harvesterName;
 
     private LocalDate date;
 
-    public void setDate(LocalDate date) {
-        this.date = date;
-    }
 }

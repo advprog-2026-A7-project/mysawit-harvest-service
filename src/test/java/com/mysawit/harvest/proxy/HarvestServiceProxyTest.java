@@ -18,7 +18,6 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class HarvestServiceProxyTest {
-
     @Mock
     private HarvestServiceImpl harvestServiceImpl;
 
@@ -36,7 +35,6 @@ class HarvestServiceProxyTest {
         updateRequest = new UpdateHarvestStatusRequest();
     }
 
-    // HARVEST LOG ------------------------------------------------------------------
     @Test
     void logHarvest_Success_WhenIdIsNotNull() {
         when(harvestServiceImpl.logHarvest(any(), eq(validId))).thenReturn(new HarvestResponse());
@@ -54,7 +52,6 @@ class HarvestServiceProxyTest {
         verifyNoInteractions(harvestServiceImpl);
     }
 
-    // HARVESTER VIEW ------------------------------------------------------------------
     @Test
     void harvesterView_ThrowsException_WhenIdIsNull() {
         assertThrows(UnauthorizedUserException.class, () ->
@@ -73,7 +70,6 @@ class HarvestServiceProxyTest {
         verify(harvestServiceImpl, times(1)).harvesterViewHarvest(request, validId);
     }
 
-    // FOREMAN VIEW ------------------------------------------------------------------
     @Test
     void foremanView_Success_WhenIdIsNotNull() {
         when(harvestServiceImpl.foremanViewHarvest(any(), eq(validId))).thenReturn(List.of());
@@ -89,7 +85,6 @@ class HarvestServiceProxyTest {
         );
     }
 
-    // GENERAL VIEW ------------------------------------------------------------------
     @Test
     void getDetail_Success_WhenAtLeastOneIdIsPresent() {
         when(harvestServiceImpl.getHarvestDetail(any(), any(), any())).thenReturn(new HarvestResponse());
@@ -104,7 +99,6 @@ class HarvestServiceProxyTest {
         );
     }
 
-    // FOREMAN UPDATE STATUS ------------------------------------------------------------------
     @Test
     void updateStatus_Success_WhenForemanIdIsNotNull() {
         when(harvestServiceImpl.updateHarvestStatus(any(), eq(validId))).thenReturn(new HarvestResponse());

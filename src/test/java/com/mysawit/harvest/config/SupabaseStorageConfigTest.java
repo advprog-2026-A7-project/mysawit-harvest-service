@@ -1,15 +1,12 @@
 package com.mysawit.harvest.config;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import software.amazon.awssdk.services.s3.S3Client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SupabaseStorageConfigTest {
-
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withUserConfiguration(SupabaseStorageConfig.class);
 

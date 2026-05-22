@@ -21,7 +21,6 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserReplicaServiceTest {
-
     @Mock
     private UserReplicaRepository repository;
 

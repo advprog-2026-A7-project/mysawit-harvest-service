@@ -7,7 +7,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AuthenticatedUserTest {
-
     private final UUID userId = UUID.randomUUID();
 
     @Test

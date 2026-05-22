@@ -5,7 +5,6 @@ import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ForemanViewHarvestRequestTest {
-
     @Test
     void testGettersAndSetters() {
         ForemanViewHarvestRequest request = new ForemanViewHarvestRequest();

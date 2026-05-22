@@ -34,7 +34,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(HarvestController.class)
 class HarvestControllerTest {
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -52,10 +51,13 @@ class HarvestControllerTest {
 
     private UUID harvesterId;
     private UUID foremanId;
+
     private AuthenticatedUser mockHarvester;
     private AuthenticatedUser mockForeman;
+
     private LogHarvestRequest validRequest;
     private UpdateHarvestStatusRequest updateStatusRequest;
+
     private MockMultipartFile mockFile1;
     private MockMultipartFile mockFile2;
 
@@ -85,7 +87,6 @@ class HarvestControllerTest {
         mockFile2 = new MockMultipartFile("files", "foto2.jpg", MediaType.IMAGE_JPEG_VALUE, "bukti-panen-2".getBytes());
     }
 
-    // HARVEST LOG ------------------------------------------------------------------
     @Test
     void logHarvestSuccess() throws Exception {
         UUID randomId = UUID.randomUUID();
@@ -210,7 +211,6 @@ class HarvestControllerTest {
                 .andExpect(jsonPath("$.message").value("At least one valid photo file must be provided."));
     }
 
-    // HARVESTER VIEW HARVEST ------------------------------------------------------------------
     @Test
     void getHistorySuccess() throws Exception {
         when(jwtIdentityProvider.getAuthenticatedUser(anyString())).thenReturn(mockHarvester);
@@ -262,7 +262,6 @@ class HarvestControllerTest {
                 .andExpect(status().isOk());
     }
 
-    // FOREMAN VIEW HARVEST ------------------------------------------------------------------
     @Test
     void viewAllHistoryForemanSuccess() throws Exception {
         when(jwtIdentityProvider.getAuthenticatedUser(anyString())).thenReturn(mockForeman);
@@ -301,7 +300,6 @@ class HarvestControllerTest {
                 .andExpect(status().isForbidden());
     }
 
-    // FOREMAN UPDATE STATUS ------------------------------------------------------------------
     @Test
     void updateStatusSuccess() throws Exception {
         UUID harvestId = UUID.randomUUID();
@@ -385,7 +383,6 @@ class HarvestControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // GENERAL VIEW ------------------------------------------------------------------
     @Test
     void getDetail_Success() throws Exception {
         UUID harvestId = UUID.randomUUID();

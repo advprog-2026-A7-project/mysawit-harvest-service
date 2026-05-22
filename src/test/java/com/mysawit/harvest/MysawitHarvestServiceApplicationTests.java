@@ -9,7 +9,6 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import static org.mockito.Mockito.*;
 
 class MysawitHarvestServiceApplicationTests {
-
     @Test
     void constructorCanBeCalled() {
         new MysawitHarvestServiceApplication();

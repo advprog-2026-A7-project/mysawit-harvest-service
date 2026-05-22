@@ -16,7 +16,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringJUnitConfig(classes = RabbitMQConfig.class)
 class RabbitMQConfigTest {
-
     @Autowired
     private ApplicationContext context;
 
