@@ -1,5 +1,6 @@
 package com.mysawit.harvest.service.storage;
 
+import com.mysawit.harvest.exception.StorageUploadException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -8,7 +9,6 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,7 +49,7 @@ public class StorageServiceImpl implements StorageService {
             return String.format("%s/object/public/%s/%s", publicEndpoint, bucketName, fileName);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to upload file to Supabase Storage", e);
+            throw new StorageUploadException("Failed to upload file to Supabase Storage", e);
         }
     }
 

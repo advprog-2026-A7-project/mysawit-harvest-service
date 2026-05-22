@@ -32,13 +32,13 @@ class StorageServiceImplTest {
     @InjectMocks
     private StorageServiceImpl storageService;
 
-    private final String BUCKET_NAME = "harvest-proofs";
-    private final String ENDPOINT = "https://xyz.storage.supabase.co/s3";
+    private final String bucketName = "harvest-proofs";
+    private final String endpoint = "https://xyz.storage.supabase.co/s3";
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(storageService, "bucketName", BUCKET_NAME);
-        ReflectionTestUtils.setField(storageService, "endpoint", ENDPOINT);
+        ReflectionTestUtils.setField(storageService, "bucketName", bucketName);
+        ReflectionTestUtils.setField(storageService, "endpoint", endpoint);
     }
 
     @Test
@@ -50,7 +50,7 @@ class StorageServiceImplTest {
 
         String resultUrl = storageService.uploadFile(mockFile);
 
-        String expectedBaseUrl = "https://xyz.supabase.co/object/public/" + BUCKET_NAME + "/";
+        String expectedBaseUrl = "https://xyz.supabase.co/object/public/" + bucketName + "/";
         assertThat(resultUrl).startsWith(expectedBaseUrl);
         assertThat(resultUrl).endsWith(".jpg");
 
@@ -58,7 +58,7 @@ class StorageServiceImplTest {
         verify(s3Client, times(1)).putObject(requestCaptor.capture(), any(RequestBody.class));
 
         PutObjectRequest capturedRequest = requestCaptor.getValue();
-        assertThat(capturedRequest.bucket()).isEqualTo(BUCKET_NAME);
+        assertThat(capturedRequest.bucket()).isEqualTo(bucketName);
         assertThat(capturedRequest.contentType()).isEqualTo(contentType);
         assertThat(capturedRequest.key()).endsWith(".jpg");
     }

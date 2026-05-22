@@ -8,14 +8,21 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-@Getter
 @NoArgsConstructor
 public class HarvesterViewHarvestRequest {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
 
-    @Setter
+    @Getter @Setter
     private HarvestStatus status;
+
+    public LocalDateTime getStartDate() {
+        return this.startDate;
+    }
+
+    public LocalDateTime getEndDate() {
+        return this.endDate;
+    }
 
     public void setStartDate(LocalDateTime start) {
         if (start != null) {
