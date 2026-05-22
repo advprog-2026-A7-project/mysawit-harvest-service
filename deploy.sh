@@ -23,10 +23,6 @@ log_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 VERSION="v$(date +%Y%m%d%H%M%S)"
 log_info "Starting deployment of version: ${VERSION}"
 
-log_info "Building JAR with Gradle..."
-./gradlew --no-daemon clean build -x test
-log_success "JAR build complete."
-
 log_info "Building Docker image: ${IMAGE_NAME}:${VERSION}..."
 docker build -t "${IMAGE_NAME}:${VERSION}" .
 log_success "Docker image built: ${IMAGE_NAME}:${VERSION}"
