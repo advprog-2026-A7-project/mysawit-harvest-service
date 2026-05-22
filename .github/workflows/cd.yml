@@ -64,25 +64,27 @@ jobs:
             
             sudo docker build -t mysawit-harvest .
             
+            echo "SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL" > .env
+            echo "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME" >> .env
+            echo "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD" >> .env
+            echo "RABBITMQ_HOST=$RABBITMQ_HOST" >> .env
+            echo "RABBITMQ_USERNAME=$RABBITMQ_USERNAME" >> .env
+            echo "RABBITMQ_PASSWORD=$RABBITMQ_PASSWORD" >> .env
+            echo "RABBITMQ_VHOST=$RABBITMQ_VHOST" >> .env
+            echo "IDENTITY_SERVICE_URL=$IDENTITY_SERVICE_URL" >> .env
+            echo "IDENTITY_INTERNAL_API_KEY=$IDENTITY_INTERNAL_API_KEY" >> .env
+            echo "JWT_SECRET=$JWT_SECRET" >> .env
+            echo "CORS_ORIGINS=$CORS_ORIGINS" >> .env
+            echo "GRAFANA_ADMIN_USER=$GRAFANA_ADMIN_USER" >> .env
+            echo "GRAFANA_ADMIN_PASSWORD=$GRAFANA_ADMIN_PASSWORD" >> .env
+            
             sudo docker run -d \
               --name harvest-service \
               --network host \
-              -e SPRING_DATASOURCE_URL="$SPRING_DATASOURCE_URL" \
-              -e SPRING_DATASOURCE_USERNAME="$SPRING_DATASOURCE_USERNAME" \
-              -e SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD" \
-              -e RABBITMQ_HOST="$RABBITMQ_HOST" \
-              -e RABBITMQ_USERNAME="$RABBITMQ_USERNAME" \
-              -e RABBITMQ_PASSWORD="$RABBITMQ_PASSWORD" \
-              -e RABBITMQ_VHOST="$RABBITMQ_VHOST" \
-              -e IDENTITY_SERVICE_URL="$IDENTITY_SERVICE_URL" \
-              -e IDENTITY_INTERNAL_API_KEY="$IDENTITY_INTERNAL_API_KEY" \
-              -e JWT_SECRET="$JWT_SECRET" \
-              -e CORS_ORIGINS="$CORS_ORIGINS" \
+              --env-file .env \
               --restart unless-stopped \
               mysawit-harvest
             
-            echo "GRAFANA_ADMIN_USER=$GRAFANA_ADMIN_USER" > .env
-            echo "GRAFANA_ADMIN_PASSWORD=$GRAFANA_ADMIN_PASSWORD" >> .env
             sudo docker compose up -d
 
       - name: Verify Health
