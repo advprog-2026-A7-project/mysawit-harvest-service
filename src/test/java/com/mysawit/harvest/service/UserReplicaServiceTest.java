@@ -315,3 +315,4 @@ class UserReplicaServiceTest {
         assertNull(saved.getName());
     }
 }
+
