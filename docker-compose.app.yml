@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  harvest-service:
+    image: mysawit-harvest-service:current
+    container_name: mysawit-harvest-service
+    ports:
+      - "8083:8083"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8083/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
