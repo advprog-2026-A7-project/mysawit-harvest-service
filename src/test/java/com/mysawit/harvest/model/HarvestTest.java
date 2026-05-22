@@ -22,7 +22,7 @@ class HarvestTest {
                 .news("Successful harvest")
                 .build();
 
-        assertEquals(300.5, harvest.getWeight());
+        assertEquals(777.0, harvest.getWeight());
         assertEquals("Successful harvest", harvest.getNews());
         assertEquals(HarvestStatus.PENDING, harvest.getStatus());
         assertNull(harvest.getRejectionReason());

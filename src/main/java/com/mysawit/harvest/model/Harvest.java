@@ -25,7 +25,7 @@ public class Harvest {
 
     @NotNull(message = "Plantation ID is required")
     @Column(name = "plantation_id", nullable = false)
-    private String plantationId; // Code from plantation
+    private String plantationId;
 
     @NotNull(message = "Harvester ID is required")
     @Column(name = "harvester_id", nullable = false)
@@ -41,7 +41,7 @@ public class Harvest {
     @NotNull(message = "Weight is required")
     @Positive(message = "Weight must be positive")
     @Column(nullable = false)
-    private Double weight; // KG
+    private Double weight;
 
     @NotNull(message = "News is required")
     @Column(columnDefinition = "TEXT", nullable = false)

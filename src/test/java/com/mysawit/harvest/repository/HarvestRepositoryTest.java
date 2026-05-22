@@ -39,7 +39,7 @@ class HarvestRepositoryTest {
     private List<Harvest> findForemanHarvests(UUID id, String name, LocalDate date) {
         return harvestRepository.findAllByHarvesterNameAndDate(
                 id,
-                (name != null && !name.isBlank()) ? name : null, // Set to null if empty to let query skip it
+                (name != null && !name.isBlank()) ? name : null,
                 date
         );
     }
