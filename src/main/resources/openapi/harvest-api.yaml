@@ -1,0 +1,306 @@
+openapi: 3.0.3
+info:
+  title: MySawit Harvest Service API
+  version: 1.0.0
+  description: >
+    Harvest Service API for logging harvests with photo evidence, viewing
+    harvest history, and approving or rejecting harvest logs.
+
+servers:
+  - url: http://localhost:8083
+    description: Local Harvest Service
+
+tags:
+  - name: Harvests
+  - name: Health
+
+paths:
+  /harvests:
+    post:
+      tags: [Harvests]
+      summary: Log a new harvest
+      description: >
+        BURUH logs a harvest using multipart/form-data. At least one valid
+        photo file is required. Uploaded photos are stored through the storage
+        service and their URLs are persisted in the harvest record.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [request, files]
+              properties:
+                request:
+                  $ref: '#/components/schemas/LogHarvestRequest'
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "201":
+          description: Harvest successfully logged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Harvest successfully logged
+                  id:
+                    type: string
+                    format: uuid
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+
+    get:
+      tags: [Harvests]
+      summary: View harvests for foreman
+      description: MANDOR views harvest logs for supervised users, with optional filters.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: harvesterName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Harvest list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HarvestResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+
+  /harvests/my:
+    get:
+      tags: [Harvests]
+      summary: View own harvest history
+      description: BURUH views their own harvest history.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/HarvestStatus'
+      responses:
+        "200":
+          description: Own harvest list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HarvestResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /harvests/{id}:
+    get:
+      tags: [Harvests]
+      summary: Get harvest detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Harvest detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HarvestResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+  /harvests/update:
+    patch:
+      tags: [Harvests]
+      summary: Update harvest status
+      description: MANDOR approves or rejects a harvest log.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateHarvestStatusRequest'
+      responses:
+        "200":
+          description: Updated harvest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HarvestResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Invalid request or validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing or invalid JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Role or ownership check failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Harvest not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    HarvestStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED]
+
+    LogHarvestRequest:
+      type: object
+      required: [plantationId, weight, news]
+      properties:
+        plantationId:
+          type: string
+        weight:
+          type: number
+          format: double
+          minimum: 0
+          exclusiveMinimum: true
+        news:
+          type: string
+        photos:
+          type: array
+          readOnly: true
+          items:
+            type: string
+            format: uri
+
+    UpdateHarvestStatusRequest:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/HarvestStatus'
+        rejectionReason:
+          type: string
+
+    HarvestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        plantationId:
+          type: string
+        harvesterId:
+          type: string
+          format: uuid
+        foremanId:
+          type: string
+          format: uuid
+          nullable: true
+        harvesterName:
+          type: string
+        weight:
+          type: number
+          format: double
+        news:
+          type: string
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+        status:
+          $ref: '#/components/schemas/HarvestStatus'
+        rejectionReason:
+          type: string
+          nullable: true
+        harvestDate:
+          type: string
+          format: date-time
+        statusUpdatedDate:
+          type: string
+          format: date-time
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+

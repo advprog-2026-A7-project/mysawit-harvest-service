@@ -99,6 +99,7 @@ public class RabbitMQConfig {
         idClassMapping.put("com.mysawit.identity.event.UserAssignedEvent", com.mysawit.harvest.event.UserAssignedEvent.class);
         idClassMapping.put("com.mysawit.identity.event.UserRegisteredEvent", com.mysawit.harvest.event.UserRegisteredEvent.class);
         idClassMapping.put("com.mysawit.identity.event.UserDeletedEvent", com.mysawit.harvest.event.UserDeletedEvent.class);
+        idClassMapping.put("com.mysawit.plantation.event.PlantationAssignmentEvent", com.mysawit.harvest.event.PlantationAssignmentEvent.class);
         idClassMapping.put("com.mysawit.plantation.event.MandorPlantationAssignedEvent", com.mysawit.harvest.event.MandorPlantationAssignedEvent.class);
         classMapper.setIdClassMapping(idClassMapping);
         
