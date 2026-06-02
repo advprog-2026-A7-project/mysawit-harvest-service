@@ -2,6 +2,8 @@
 
 Spring Boot (Java + Gradle) microservice for MySawit.
 
+---
+
 ## Run (local)
 ```
 ./gradlew bootRun
@@ -13,9 +15,13 @@ Runs at:
 http://localhost:8083
 ```
 
+---
+
 ## Health
 
 * GET `/actuator/health`
+
+---
 
 ## Main Endpoints
 
@@ -51,7 +57,6 @@ Digunakan oleh Harvester untuk mencatat hasil panen baru beserta unggahan foto b
 }
 
 ```
-
 
 ---
 
@@ -183,7 +188,6 @@ Digunakan oleh Foreman untuk menyetujui (`APPROVED`) atau menolak (`REJECTED`) a
 
 ```
 
-
 * **Response Success (`200 OK`):**
 ```json
 {
@@ -193,3 +197,5 @@ Digunakan oleh Foreman untuk menyetujui (`APPROVED`) atau menolak (`REJECTED`) a
 }
 
 ```
+
+---
